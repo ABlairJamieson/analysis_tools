@@ -18,7 +18,39 @@ analysis_tools/
 ├── notebooks/ #contains older example notebooks (from August 2025 workshop)
 ```
 
+## Export calibrated real-data hits for NPZ analyses
+
+The scripts/export_wcte_npz.py adapter reads a production ROOT file with
+WCTEReadoutWindows. It uses analysis_tools.DataLoader to reject windows with
+nonzero window_data_quality_mask and hits with nonzero hit_pmt_readout_mask.
+It maps each WCTE (mPMT slot, PMT position) to the zero-based WCSim PMT ID
+used by WatChMaL DataTools NPZ files, using WCSimPMTMapping. Hits absent
+from the selected WCSim geometry are omitted and counted. The input must
+already contain calibrated hit times and charges.
+
+For a small check:
+
+    python3 scripts/export_wcte_npz.py \
+      /path/to/WCTE_merged_production_R1827.root \
+      /path/to/output/R1827_test.npz --max-events 10
+
+For a full run, omit --max-events. The script writes files such as
+R1827_part00000.npz, with 5000 quality-selected windows per file by default.
+Use --events-per-file to change that limit. The output contains
+digi_hit_pmt, digi_hit_time, digi_hit_charge, and event_id, plus available
+run/readout identifiers. window_time is retained separately as metadata;
+the calibrated hit times are left in their original readout-window time
+convention. The exporter does not invent WCSim trigger indices or truth.
+
+The default WCSim map is the package's v1.12.29 geometry. Use
+--mapping-file /path/to/wcsim_geofile.txt if the simulation analysis uses a
+different geometry. Optional --t5-quality and --vme-quality flags apply
+those existing DataLoader selections when the corresponding branches are
+present. Check time and charge distributions before comparing real data
+with simulation: this adapter does not perform detector-response calibration.
+
 # Installation
+
 Installation:
 
 ```
