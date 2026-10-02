@@ -83,6 +83,39 @@ with HD-to-T0 matches; `pmt_peaks.csv` records high-count histogram bins
 as visual aids, not particle assignments. T5 is displayed as a possible
 charged-particle indicator and is not required for tagged photons.
 
+### Aggregate within-window burst-gap study
+
+`scripts/study_wcte_burst_gaps.py` scans many ROOT readout windows and
+histograms gaps between dense PMT-hit bursts. Start with a bounded Run 1827
+sample on lxplus:
+
+```bash
+python3 scripts/study_wcte_burst_gaps.py \
+  /eos/experiment/wcte/data/2025_commissioning/processed_offline_data/production_v1_0/1827/WCTE_merged_production_R1827.root \
+  --output-dir outputs/R1827_burst_gaps --scan-windows 100000
+```
+
+The default `tagged` selection is the same *window-level* selection as the
+timing diagnostic above. Each PMT burst is a local maximum in a 50 ns
+time-density window, requiring at least 10 distinct PMTs, with maxima
+separated by 100 ns. These are exploratory, configurable thresholds, not
+particle identifications. Try `--selection beam` for the broader sample or
+`--min-pmts 20` to check threshold sensitivity. Runtime scales with the
+number of ROOT windows scanned; increase `--scan-windows` after the pilot.
+
+`burst_gap_histograms.png` shows consecutive-burst gaps and gaps from the
+strongest burst to each later burst, split by the number of observed T0
+time groups. The linear panels zoom to 0–1500 ns; the log panels show the
+full range. `t0_vs_pmt_gap_histograms.png` compares the measured T0
+group-gap and PMT burst-gap shapes. T0 hits less than 50 ns apart are
+grouped; **50 ns is a grouping resolution, not an assumed T9 bunch period**.
+`bursts.csv`, `gaps.csv`, and `t0_group_gaps.csv` preserve per-window values
+and ROOT entry/readout IDs; `summary.json` records counts and thresholds.
+The beamline TDC and WCTE PMT clocks remain unaligned, and a missing later
+T0 group does not prove that a later PMT burst was not beam-related. Gap
+peaks alone cannot assign individual particles or distinguish delayed
+physics from instrumental structure.
+
 For a full run, omit --max-events. The script writes files such as
 R1827_part00000.npz, with 5000 quality-selected windows per file by default.
 Use --events-per-file to change that limit. The output contains
