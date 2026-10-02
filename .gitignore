@@ -25,6 +25,7 @@ analysis_tools.egg-info/
 
 #ignore setup shell scripts
 *.sh
+!scripts/run_wcte_npz_one.sh
 
 #ignore batch scripts
 scripts/batchScripts/
@@ -35,3 +36,4 @@ crossing_muon_study/
 
 # analysis output data
 analysis_examples/*.parquet
+/outputs/

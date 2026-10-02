@@ -49,6 +49,35 @@ those existing DataLoader selections when the corresponding branches are
 present. Check time and charge distributions before comparing real data
 with simulation: this adapter does not perform detector-response calibration.
 
+### Batch conversion on CERN
+
+The batch helper has the 35 commissioning run numbers 1786-1842 supplied for
+this analysis as its default list. It expects inputs at
+/eos/experiment/wcte/data/2025_commissioning/processed_offline_data/
+production_v1_0/<run>/WCTE_merged_production_R<run>.root and writes NPZ
+parts in each run's converted_npz directory. Run the helper from a checkout
+on EOS. It reports missing inputs and unwritable output directories before
+submission.
+
+First prepare and submit a single-run pilot:
+
+    python3 scripts/prepare_wcte_npz_batch.py --runs 1827
+    module load lxbatch/eossubmit
+    condor_submit outputs/wcte_npz_batch/convert_wcte_npz.sub
+
+After inspecting the pilot output and conversion.done marker, prepare the
+full list and submit it:
+
+    python3 scripts/prepare_wcte_npz_batch.py
+    wc -l outputs/wcte_npz_batch/jobs.txt
+    condor_submit outputs/wcte_npz_batch/convert_wcte_npz.sub
+
+One job processes each run. The worker sources the CERN LCG_110_swan view,
+uses the quality-selected exporter, and writes a conversion.done marker
+only when all NPZ parts for that run have completed. It refuses to overwrite
+existing NPZ files without that marker. Inspect any failed run's logs and
+.conversion_in_progress directory before resubmitting.
+
 # Installation
 
 Installation:
