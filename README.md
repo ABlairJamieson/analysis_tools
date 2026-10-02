@@ -34,6 +34,55 @@ For a small check:
       /path/to/WCTE_merged_production_R1827.root \
       /path/to/output/R1827_test.npz --max-events 10
 
+For a cut-flow pilot, add `--diagnostics-dir /path/to/output/R1827_diagnostics`.
+This writes `cutflow.json`, a `rejected_windows.csv` listing every rejected
+window and its applied rejection reasons, and `quality_diagnostics.png` with
+window-mask reasons, optional VME/T5 failure counts, and before/after hit
+multiplicity. Mask reasons overlap: a window or hit can fail multiple checks.
+Optional VME/T5 failure counts are shown when those branches exist, even if
+their cuts were not enabled; `applied_cuts` in JSON identifies what actually
+removed windows. With `--max-events`, diagnostics cover complete ROOT batches
+scanned and may count more windows than were exported. Use a small
+`--step-size` for a tightly bounded pilot. The diagnostic plot requires
+matplotlib; ordinary conversion does not.
+For a matched comparison of default and T5-selected samples, run two pilot
+exports with the same `--max-input-windows N` and different output paths,
+adding `--t5-quality` to the second. This bounds the number of raw ROOT
+windows, unlike `--max-events`, which counts only exported windows. In the
+tagged-gamma setup T5 is a charged-particle veto/TOF detector: the
+T5-selected export is a charged-particle control, **not** a cleaner
+tagged-photon sample.
+
+### Tagged-gamma readout-window timing diagnostic
+
+`scripts/plot_tagged_gamma_window_timing.py` examines a bounded number of
+ROOT readout windows before attempting bunch separation. For example, on
+lxplus from this repository:
+
+```bash
+python3 scripts/plot_tagged_gamma_window_timing.py \
+  /eos/experiment/wcte/data/2025_commissioning/processed_offline_data/production_v1_0/1827/WCTE_merged_production_R1827.root \
+  --output-dir outputs/R1827_timing_pilot --scan-windows 10000 --max-plots 20
+```
+
+The default `tagged` selection requires a quality-good window, T0 and T2
+TDC hits, no HC2 hit, and at least one hodoscope hit in the published
+T0-relative timing windows. It is a *window-level diagnostic*, not a
+unique-particle or unique-bunch tag; T2 is not yet paired to a particular
+T0 hit. The window/hit readout masks are applied, but the run's additional
+good-PMT channel list is not. Pass `--selection beam` to omit the HD
+requirement or `--selection all` to inspect every quality-good window.
+Use `--entry-start` or `--readout-numbers` to inspect specific windows.
+
+Each selected window gets a PNG with separate WCTE PMT, beamline TDC, and
+T5 panels. The panels deliberately have independent clock origins: an
+offset between PMT, beamline, and T5 systems has not been established.
+`window_summary.csv` retains ROOT entry/event/readout identifiers;
+`beam_hits.csv` retains *every* TDC hit, including repeated channel IDs,
+with HD-to-T0 matches; `pmt_peaks.csv` records high-count histogram bins
+as visual aids, not particle assignments. T5 is displayed as a possible
+charged-particle indicator and is not required for tagged photons.
+
 For a full run, omit --max-events. The script writes files such as
 R1827_part00000.npz, with 5000 quality-selected windows per file by default.
 Use --events-per-file to change that limit. The output contains
