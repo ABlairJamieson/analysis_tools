@@ -2,6 +2,7 @@ import argparse
 import csv
 
 import numpy as np
+import pytest
 
 from scripts.fit_wcte_delayed_bursts import fit_models, load_delays, run
 
@@ -32,6 +33,18 @@ def test_prompt_relative_selection(tmp_path):
     assert delays.tolist() == [2320]
     assert counts["selected_windows"] == 1
     assert counts["windows_without_unique_prompt"] == 1
+
+
+def test_rejects_unsorted_burst_export(tmp_path):
+    path = tmp_path / "bursts.csv"
+    write_bursts(path, [
+        dict(root_entry=2, run_id=1827, readout_number=2, center_ns=1700, n_pmts=100),
+        dict(root_entry=1, run_id=1827, readout_number=1, center_ns=1700, n_pmts=100),
+    ])
+    with pytest.raises(ValueError, match="ordered by ROOT entry"):
+        load_delays(path, prompt_min_ns=1500, prompt_max_ns=1900,
+                    min_delay_ns=500, max_delay_ns=7500,
+                    min_prompt_pmts=10, min_delayed_pmts=10)
 
 
 def test_lifetime_component_improves_synthetic_fit():

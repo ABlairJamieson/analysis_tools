@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from collections import defaultdict
 from pathlib import Path
 
 import matplotlib
@@ -27,28 +26,25 @@ REQUIRED = {"root_entry", "run_id", "readout_number", "center_ns", "n_pmts"}
 def load_delays(path: Path, *, prompt_min_ns: float, prompt_max_ns: float,
                 min_delay_ns: float, max_delay_ns: float,
                 min_prompt_pmts: int, min_delayed_pmts: int) -> tuple[np.ndarray, dict]:
-    """Use exactly one prompt burst per readout; retain all later burst centers."""
-    windows = defaultdict(list)
-    with path.open(newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        if not reader.fieldnames or not REQUIRED.issubset(reader.fieldnames):
-            raise ValueError(f"{path} is not a study_wcte_burst_gaps.py bursts.csv")
-        for row in reader:
-            key = (row["run_id"], row["root_entry"], row["readout_number"])
-            center = float(row["center_ns"])
-            n_pmts = int(row["n_pmts"])
-            if np.isfinite(center):
-                windows[key].append((center, n_pmts))
+    """Use exactly one prompt burst per readout; retain all later burst centers.
+
+    The exporter writes consecutive rows for each ROOT entry. Only one window's
+    burst records are held at a time, making a full-run CSV practical on lxplus.
+    """
     delays = []
-    counts = {"input_windows": len(windows), "windows_without_unique_prompt": 0,
+    counts = {"input_windows": 0, "windows_without_unique_prompt": 0,
               "selected_windows": 0, "windows_with_delayed_bursts": 0,
               "delayed_bursts": 0}
-    for bursts in windows.values():
+
+    def process_window(bursts):
+        if not bursts:
+            return
+        counts["input_windows"] += 1
         prompt = [(t, n) for t, n in bursts
                   if prompt_min_ns <= t < prompt_max_ns and n >= min_prompt_pmts]
         if len(prompt) != 1:
             counts["windows_without_unique_prompt"] += 1
-            continue
+            return
         counts["selected_windows"] += 1
         prompt_time = prompt[0][0]
         found = 0
@@ -59,6 +55,29 @@ def load_delays(path: Path, *, prompt_min_ns: float, prompt_max_ns: float,
                 found += 1
         if found:
             counts["windows_with_delayed_bursts"] += 1
+
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames or not REQUIRED.issubset(reader.fieldnames):
+            raise ValueError(f"{path} is not a study_wcte_burst_gaps.py bursts.csv")
+        current_key = None
+        current_bursts = []
+        previous_entry = -1
+        for row in reader:
+            key = (row["run_id"], row["root_entry"], row["readout_number"])
+            entry = int(row["root_entry"])
+            if entry < previous_entry:
+                raise ValueError(f"{path} must be ordered by ROOT entry")
+            if current_key is not None and key != current_key:
+                process_window(current_bursts)
+                current_bursts = []
+            current_key = key
+            previous_entry = entry
+            center = float(row["center_ns"])
+            n_pmts = int(row["n_pmts"])
+            if np.isfinite(center):
+                current_bursts.append((center, n_pmts))
+        process_window(current_bursts)
     counts["delayed_bursts"] = len(delays)
     return np.asarray(delays, dtype=float), counts
 
