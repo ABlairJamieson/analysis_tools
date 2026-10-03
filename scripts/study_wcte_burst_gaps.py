@@ -23,6 +23,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uproot
 
+try:
+    from scripts.beamline_timing import REFERENCE_IDS, correct_tdc_hits
+except ModuleNotFoundError as exc:
+    if exc.name != "scripts":
+        raise
+    from beamline_timing import REFERENCE_IDS, correct_tdc_hits
+
 
 T0_IDS = {0, 1, 2, 3}
 T2_ID = 8
@@ -84,13 +91,16 @@ def t0_group_centers(t0_times: list[float], separation_ns: float = 50) -> list[f
     return [float(np.median(group)) for group in np.split(ordered, split_at)]
 
 
-def beamline_status(event) -> tuple[bool, bool, list[float]]:
+def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, bool, list[float], tuple]:
     ids = ak.to_list(event["beamline_pmt_tdc_ids"])
     times = ak.to_list(event["beamline_pmt_tdc_times"])
     if len(ids) != len(times):
         raise ValueError("Beamline TDC ID/time lengths differ")
-    hits = [(int(cid), float(time)) for cid, time in zip(ids, times)
-            if time is not None and np.isfinite(float(time))]
+    raw_hits = [(int(cid), float(time)) for cid, time in zip(ids, times)
+                if time is not None and np.isfinite(float(time))]
+    corrected, refs = correct_tdc_hits(raw_hits, mode=tdc_time_mode)
+    hits = [(hit.channel_id, hit.corrected_ns) for hit in corrected
+            if hit.corrected_ns is not None and hit.channel_id not in REFERENCE_IDS]
     channels = {cid for cid, _ in hits}
     t0 = [time for cid, time in hits if cid in T0_IDS]
     beam_ok = bool(channels & T0_IDS) and T2_ID in channels and HC2_ID not in channels
@@ -104,7 +114,7 @@ def beamline_status(event) -> tuple[bool, bool, list[float]]:
             if any(lo < hd_time - t0_time < hi for t0_time in t0):
                 tagged = True
                 break
-    return beam_ok, tagged, t0_group_centers(t0)
+    return beam_ok, tagged, t0_group_centers(t0), refs
 
 
 def _hits(event) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -119,7 +129,7 @@ def _hits(event) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def plot_histograms(path: Path, histograms: dict[tuple[str, str], np.ndarray],
                     edges: np.ndarray, selected: int, multi: int) -> None:
-    fig, axes = plt.subplots(2, 2, figsize=(14, 8), sharex=True, constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8), constrained_layout=True)
     groups = (("one_t0_group", "1 T0 time group"),
               ("multiple_t0_groups", "2+ T0 time groups"),
               ("no_t0", "No T0 hit"))
@@ -168,6 +178,11 @@ def plot_t0_comparison(path: Path, t0_hist: np.ndarray, pmt_hist: np.ndarray,
 
 
 def run(args: argparse.Namespace) -> dict:
+    tdc_mode = getattr(args, "tdc_time_mode", "reference")
+    prompt_min = getattr(args, "prompt_min_ns", 1500)
+    prompt_max = getattr(args, "prompt_max_ns", 1900)
+    if prompt_max <= prompt_min:
+        raise ValueError("Prompt maximum must exceed prompt minimum")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     edges = np.arange(0, args.max_ns - args.min_ns + args.hist_bin_ns, args.hist_bin_ns)
     histograms = {(kind, group): np.zeros(len(edges) - 1, dtype=np.int64)
@@ -176,6 +191,7 @@ def run(args: argparse.Namespace) -> dict:
     t0_hist = np.zeros(len(edges) - 1, dtype=np.int64)
     counts: Counter[str] = Counter()
     multiplicities: Counter[int] = Counter()
+    alignment_candidates: list[float] = []
     with uproot.open(args.input_root) as root:
         tree = root["WCTEReadoutWindows"]
         missing = set(REQUIRED) - set(tree.keys())
@@ -184,7 +200,8 @@ def run(args: argparse.Namespace) -> dict:
         stop = min(tree.num_entries, args.entry_start + args.scan_windows)
         with (args.output_dir / "bursts.csv").open("w", newline="", encoding="utf-8") as burst_file, \
              (args.output_dir / "gaps.csv").open("w", newline="", encoding="utf-8") as gap_file, \
-             (args.output_dir / "t0_group_gaps.csv").open("w", newline="", encoding="utf-8") as t0_file:
+             (args.output_dir / "t0_group_gaps.csv").open("w", newline="", encoding="utf-8") as t0_file, \
+             (args.output_dir / "alignment_candidates.csv").open("w", newline="", encoding="utf-8") as align_file:
             burst_writer = csv.DictWriter(burst_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number", "n_t0_groups",
                 "burst_index", "strongest", *Burst.__dataclass_fields__))
@@ -194,9 +211,13 @@ def run(args: argparse.Namespace) -> dict:
             t0_writer = csv.DictWriter(t0_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number",
                 "from_t0_group", "to_t0_group", "from_time_ns", "to_time_ns", "gap_ns"))
+            align_writer = csv.DictWriter(align_file, fieldnames=(
+                "root_entry", "run_id", "event_number", "readout_number", "t0_ns",
+                "pmt_burst_ns", "pmt_minus_t0_ns", "n_pmt_bursts"))
             burst_writer.writeheader()
             gap_writer.writeheader()
             t0_writer.writeheader()
+            align_writer.writeheader()
             for start in range(args.entry_start, stop, args.batch_windows):
                 batch = tree.arrays(REQUIRED, entry_start=start,
                                     entry_stop=min(start + args.batch_windows, stop), library="ak")
@@ -205,7 +226,11 @@ def run(args: argparse.Namespace) -> dict:
                     if int(event["window_data_quality_mask"]) != 0:
                         continue
                     counts["quality_good_windows"] += 1
-                    beam_ok, tagged, t0_centers = beamline_status(event)
+                    beam_ok, tagged, t0_centers, refs = beamline_status(event, tdc_time_mode=tdc_mode)
+                    if refs[0] is None:
+                        counts["windows_missing_tdc_ref31"] += 1
+                    if refs[1] is None:
+                        counts["windows_missing_tdc_ref46"] += 1
                     if args.selection == "beam" and not beam_ok:
                         continue
                     if args.selection == "tagged" and not tagged:
@@ -237,6 +262,15 @@ def run(args: argparse.Namespace) -> dict:
                     counts["windows_with_bursts"] += 1
                     if len(bursts) > 1:
                         counts["windows_with_multiple_bursts"] += 1
+                    prompt_bursts = [burst for burst in bursts
+                                     if prompt_min <= burst.center_ns < prompt_max]
+                    if tdc_mode == "reference" and n_t0 == 1 and len(prompt_bursts) == 1:
+                        candidate = prompt_bursts[0].center_ns - t0_centers[0]
+                        alignment_candidates.append(candidate)
+                        align_writer.writerow({**{key: identity[key] for key in (
+                            "root_entry", "run_id", "event_number", "readout_number")},
+                            "t0_ns": t0_centers[0], "pmt_burst_ns": prompt_bursts[0].center_ns,
+                            "pmt_minus_t0_ns": candidate, "n_pmt_bursts": len(bursts)})
                     strongest = max(range(len(bursts)), key=lambda i: bursts[i].n_pmts)
                     group = "no_t0" if n_t0 == 0 else "one_t0_group" if n_t0 == 1 else "multiple_t0_groups"
                     for i, burst in enumerate(bursts):
@@ -256,10 +290,21 @@ def run(args: argparse.Namespace) -> dict:
                 "counts": dict(counts),
                 "burst_multiplicity_per_selected_window": {str(k): v for k, v in sorted(multiplicities.items())},
                 "selection": args.selection,
+                "tdc_time_mode": tdc_mode,
+                "alignment_candidates": {
+                    "count": len(alignment_candidates),
+                    "prompt_pmt_range_ns": [prompt_min, prompt_max],
+                    "median_pmt_minus_t0_ns": (float(np.median(alignment_candidates))
+                                                if alignment_candidates else None),
+                    "mad_ns": (float(np.median(np.abs(np.asarray(alignment_candidates)
+                                                     - np.median(alignment_candidates))))
+                               if alignment_candidates else None),
+                    "note": "Empirical prompt-light offset includes particle/light propagation; inspect the distribution before applying it.",
+                },
                 "settings": {key: getattr(args, key) for key in (
                     "entry_start", "scan_windows", "min_ns", "max_ns", "bin_ns", "width_ns",
                     "min_pmts", "min_separation_ns", "max_bursts", "hist_bin_ns")},
-                "interpretation": "Bursts are time-density candidates, not particle IDs. Gaps from one window are correlated; TDC and PMT clocks are not aligned.",
+                "interpretation": "Bursts are time-density candidates, not particle IDs. Gaps from one window are correlated; TDC references correct only within the beamline clock, not against WCTE PMT time.",
                 "t0_group_gap_count": int(t0_hist.sum()),
             }
             (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -269,8 +314,25 @@ def run(args: argparse.Namespace) -> dict:
         "one_t0_group", "multiple_t0_groups", "no_t0")), np.zeros(len(edges) - 1, dtype=np.int64))
     plot_t0_comparison(args.output_dir / "t0_vs_pmt_gap_histograms.png",
                        t0_hist, pmt_consecutive, edges)
+    fig, axis = plt.subplots(figsize=(9, 4.5), constrained_layout=True)
+    if alignment_candidates:
+        axis.hist(alignment_candidates, bins=100, histtype="step", color="tab:green")
+    else:
+        axis.text(0.5, 0.5, "No qualifying alignment candidates",
+                  transform=axis.transAxes, ha="center", va="center")
+    axis.set(xlabel="Prompt PMT burst − reference-corrected T0 (ns)",
+             ylabel="Windows / bin", title="Empirical cross-system alignment candidates")
+    axis.grid(alpha=0.2)
+    fig.savefig(args.output_dir / "alignment_candidates.png", dpi=170)
+    plt.close(fig)
     print(f"Scanned {counts['raw_windows']:,} ROOT windows; selected {counts['selected_windows']:,}; "
           f"{counts['windows_with_multiple_bursts']:,} have 2+ PMT bursts")
+    if tdc_mode == "reference":
+        print(f"Missing TDC references among quality-good windows: "
+              f"31={counts['windows_missing_tdc_ref31']:,}, "
+              f"46={counts['windows_missing_tdc_ref46']:,}")
+        print(f"Empirical alignment candidates: {len(alignment_candidates):,}; "
+              "inspect alignment_candidates.png before using an offset")
     print(f"Results: {args.output_dir}")
     return summary
 
@@ -292,12 +354,18 @@ def main() -> int:
     parser.add_argument("--min-separation-ns", type=float, default=100)
     parser.add_argument("--max-bursts", type=int, default=20)
     parser.add_argument("--hist-bin-ns", type=float, default=50)
+    parser.add_argument("--tdc-time-mode", choices=("reference", "raw"), default="reference",
+                        help="Subtract TDC references 31/46; raw is for comparison only")
+    parser.add_argument("--prompt-min-ns", type=float, default=1500)
+    parser.add_argument("--prompt-max-ns", type=float, default=1900)
     args = parser.parse_args()
     if (args.entry_start < 0 or args.scan_windows < 1 or args.batch_windows < 1
             or args.max_ns <= args.min_ns or args.min_ns < 0 or args.bin_ns <= 0
             or args.width_ns <= 0 or args.min_pmts < 1 or args.min_separation_ns <= 0
             or args.max_bursts < 1 or args.hist_bin_ns <= 0):
         parser.error("Require nonnegative entry/time starts and positive window, bin, threshold and scan settings")
+    if args.prompt_max_ns <= args.prompt_min_ns:
+        parser.error("Prompt maximum must exceed prompt minimum")
     run(args)
     return 0
 

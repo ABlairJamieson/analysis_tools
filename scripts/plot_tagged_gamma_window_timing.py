@@ -20,6 +20,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uproot
 
+try:
+    from scripts.beamline_timing import REFERENCE_IDS, correct_tdc_hits
+except ModuleNotFoundError as exc:
+    if exc.name != "scripts":
+        raise
+    from beamline_timing import REFERENCE_IDS, correct_tdc_hits
+
 
 T0_IDS = {0, 1, 2, 3}
 T2_ID = 8
@@ -79,7 +86,7 @@ def peak_bins(times: np.ndarray, low: float, high: float, width: float,
 def draw_window(path: Path, pmt_times: np.ndarray, pmt_charges: np.ndarray,
                 hits: list[tuple[int, float]], t5_times: list[float],
                 peaks: list[tuple[float, int]], *, pmt_min: float, pmt_max: float,
-                bin_ns: float, title: str) -> None:
+                bin_ns: float, title: str, tdc_to_pmt_offset_ns: float | None = None) -> None:
     fig, axes = plt.subplots(3, 1, figsize=(14, 10), constrained_layout=True)
     edges = np.arange(pmt_min, pmt_max + bin_ns, bin_ns)
     axes[0].hist(pmt_times, bins=edges, histtype="step", color="navy", label="PMT hits")
@@ -89,6 +96,10 @@ def draw_window(path: Path, pmt_times: np.ndarray, pmt_charges: np.ndarray,
     axes[0].set(xlabel="Calibrated WCTE PMT time from readout-window start (ns)",
                 ylabel="Hits / bin", xlim=(pmt_min, pmt_max))
     axes[0].set_title(f"{len(pmt_times)} quality-kept PMT hits; charge sum {pmt_charges.sum():.0f} input units", loc="left")
+    if tdc_to_pmt_offset_ns is not None:
+        for time in [time for channel, time in hits if channel in T0_IDS]:
+            axes[0].axvline(time + tdc_to_pmt_offset_ns, color="tab:green", alpha=0.4,
+                            linestyle="--", linewidth=1)
 
     t0_times = [time for channel, time in hits if channel in T0_IDS]
     t0_ref = min(t0_times) if t0_times else None
@@ -97,14 +108,20 @@ def draw_window(path: Path, pmt_times: np.ndarray, pmt_charges: np.ndarray,
     for channel, time in hits:
         label = ("T0" if channel in T0_IDS else "T2" if channel == T2_ID else
                  "HC2" if channel == HC2_ID else HD_NAMES.get(channel, "Other"))
-        axes[1].scatter(time - t0_ref if t0_ref is not None else time,
+        x = (time + tdc_to_pmt_offset_ns if tdc_to_pmt_offset_ns is not None else
+             time - t0_ref if t0_ref is not None else time)
+        axes[1].scatter(x,
                         labels.index(label), color=colors.get(label, "tab:purple"), s=35)
     axes[1].set_yticks(range(len(labels)), labels)
-    axes[1].set(xlabel="Beamline TDC time relative to earliest T0 hit (ns)"
-                if t0_ref is not None else "Beamline TDC native time (ns)",
+    axes[1].set(xlabel=("Reference-corrected TDC + empirical offset on WCTE axis (ns)"
+                        if tdc_to_pmt_offset_ns is not None else
+                        "Beamline TDC time relative to earliest T0 hit (ns)"
+                        if t0_ref is not None else "Beamline TDC native time (ns)"),
                 ylabel="Beamline channel")
     axes[1].grid(axis="x", alpha=0.25)
-    if t0_ref is not None:
+    if tdc_to_pmt_offset_ns is not None:
+        axes[1].set_xlim(pmt_min, pmt_max)
+    elif t0_ref is not None:
         axes[1].axvline(0, color="black", linewidth=0.8)
 
     if t5_times:
@@ -115,12 +132,18 @@ def draw_window(path: Path, pmt_times: np.ndarray, pmt_charges: np.ndarray,
                      ha="center", va="center")
     axes[2].set(xlabel="T5 hit time (native branch units; NOT aligned to panels above)",
                 yticks=[])
-    fig.suptitle(title + " | panels have independent time origins", fontsize=13)
+    timing_note = (f" | empirical TDC→WCTE offset {tdc_to_pmt_offset_ns:g} ns (T5 independent)"
+                   if tdc_to_pmt_offset_ns is not None else " | panels have independent time origins")
+    fig.suptitle(title + timing_note, fontsize=13)
     fig.savefig(path, dpi=160)
     plt.close(fig)
 
 
 def run(args: argparse.Namespace) -> tuple[int, int]:
+    tdc_mode = getattr(args, "tdc_time_mode", "reference")
+    offset_ns = getattr(args, "tdc_to_pmt_offset_ns", None)
+    if offset_ns is not None and tdc_mode != "reference":
+        raise ValueError("TDC-to-PMT offset requires reference-corrected TDC times")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with uproot.open(args.input_root) as root:
         tree = root["WCTEReadoutWindows"]
@@ -137,9 +160,11 @@ def run(args: argparse.Namespace) -> tuple[int, int]:
              (args.output_dir / "pmt_peaks.csv").open("w", newline="", encoding="utf-8") as peaks_file:
             summary = csv.DictWriter(summary_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number", "n_pmt_hits",
-                "n_pmt_peaks", "n_t0_hits", "n_t2_hits", "n_hd_t0_matches", "n_t5_hits", "plot"))
+                "n_pmt_peaks", "n_t0_hits", "n_t2_hits", "n_hd_t0_matches", "n_t5_hits",
+                "tdc_time_mode", "has_ref31", "has_ref46", "tdc_to_pmt_offset_ns", "plot"))
             beam = csv.DictWriter(hits_file, fieldnames=(
                 "root_entry", "readout_number", "channel_id", "channel", "tdc_time",
+                "raw_tdc_time_ns", "reference_corrected_tdc_time_ns", "aligned_wcte_time_ns",
                 "dt_earliest_t0_ns", "matched_t0_times"))
             peak_writer = csv.DictWriter(peaks_file, fieldnames=(
                 "root_entry", "readout_number", "peak_bin_center_ns", "hits_in_bin"))
@@ -156,7 +181,10 @@ def run(args: argparse.Namespace) -> tuple[int, int]:
                         continue
                     if int(event["window_data_quality_mask"]) != 0:
                         continue
-                    hits = beam_hits(event)
+                    raw_hits = beam_hits(event)
+                    corrected, refs = correct_tdc_hits(raw_hits, mode=tdc_mode)
+                    hits = [(hit.channel_id, hit.corrected_ns) for hit in corrected
+                            if hit.corrected_ns is not None and hit.channel_id not in REFERENCE_IDS]
                     ids = [channel for channel, _ in hits]
                     matches = tag_matches(hits)
                     beam_ok = any(cid in T0_IDS for cid in ids) and T2_ID in ids and HC2_ID not in ids
@@ -178,22 +206,33 @@ def run(args: argparse.Namespace) -> tuple[int, int]:
                     title = f"Run {int(event['run_id'])}, ROOT entry {entry}, event {int(event['event_number'])}, readout {readout}"
                     draw_window(args.output_dir / image_name, times, charges, hits, t5, peaks,
                                 pmt_min=args.pmt_min_ns, pmt_max=args.pmt_max_ns,
-                                bin_ns=args.bin_ns, title=title)
+                                bin_ns=args.bin_ns, title=title,
+                                tdc_to_pmt_offset_ns=offset_ns)
                     summary.writerow({"root_entry": entry, "run_id": int(event["run_id"]),
                                      "event_number": int(event["event_number"]), "readout_number": readout,
                                      "n_pmt_hits": len(times), "n_pmt_peaks": len(peaks),
                                      "n_t0_hits": sum(cid in T0_IDS for cid in ids),
                                      "n_t2_hits": ids.count(T2_ID), "n_hd_t0_matches": len(matches),
-                                     "n_t5_hits": len(t5), "plot": image_name})
+                                     "n_t5_hits": len(t5), "tdc_time_mode": tdc_mode,
+                                     "has_ref31": int(refs[0] is not None),
+                                     "has_ref46": int(refs[1] is not None),
+                                     "tdc_to_pmt_offset_ns": offset_ns if offset_ns is not None else "",
+                                     "plot": image_name})
                     t0_times = [time for cid, time in hits if cid in T0_IDS]
                     t0_ref = min(t0_times) if t0_times else None
-                    for cid, time in hits:
+                    for hit in corrected:
+                        cid, time = hit.channel_id, hit.corrected_ns
                         label = ("T0" if cid in T0_IDS else "T2" if cid == T2_ID else
                                  "HC2" if cid == HC2_ID else HD_NAMES.get(cid, "Other"))
-                        matched = [t0 for hd_id, hd_time, t0 in matches if hd_id == cid and hd_time == time]
+                        matched = ([t0 for hd_id, hd_time, t0 in matches if hd_id == cid and hd_time == time]
+                                   if time is not None else [])
                         beam.writerow({"root_entry": entry, "readout_number": readout,
-                                       "channel_id": cid, "channel": label, "tdc_time": time,
-                                       "dt_earliest_t0_ns": time - t0_ref if t0_ref is not None else "",
+                                       "channel_id": cid, "channel": label,
+                                       "tdc_time": time if time is not None else "",
+                                       "raw_tdc_time_ns": hit.raw_ns,
+                                       "reference_corrected_tdc_time_ns": time if time is not None else "",
+                                       "aligned_wcte_time_ns": time + offset_ns if time is not None and offset_ns is not None else "",
+                                       "dt_earliest_t0_ns": time - t0_ref if time is not None and t0_ref is not None else "",
                                        "matched_t0_times": ";".join(map(str, matched))})
                     for time, count in peaks:
                         peak_writer.writerow({"root_entry": entry, "readout_number": readout,
@@ -221,11 +260,18 @@ def main() -> int:
     parser.add_argument("--pmt-max-ns", type=float, default=10_000)
     parser.add_argument("--bin-ns", type=float, default=10)
     parser.add_argument("--min-peak-hits", type=int, default=10)
+    parser.add_argument("--tdc-time-mode", choices=("reference", "raw"), default="reference",
+                        help="Subtract beamline TDC references 31/46; raw is for comparison only")
+    parser.add_argument("--tdc-to-pmt-offset-ns", type=float,
+                        help="Empirical offset to add to reference-corrected TDC times for display")
     args = parser.parse_args()
     if (args.entry_start < 0 or args.scan_windows < 1 or args.batch_windows < 1
             or args.max_plots < 1 or args.min_peak_hits < 1 or args.bin_ns <= 0
             or args.pmt_max_ns <= args.pmt_min_ns):
         parser.error("Require positive scan/plot/bin settings and PMT max > min")
+    if args.tdc_to_pmt_offset_ns is not None and (not np.isfinite(args.tdc_to_pmt_offset_ns)
+                                                  or args.tdc_time_mode != "reference"):
+        parser.error("Finite --tdc-to-pmt-offset-ns requires --tdc-time-mode reference")
     run(args)
     return 0
 

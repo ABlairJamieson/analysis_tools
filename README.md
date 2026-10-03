@@ -77,6 +77,13 @@ Use `--entry-start` or `--readout-numbers` to inspect specific windows.
 Each selected window gets a PNG with separate WCTE PMT, beamline TDC, and
 T5 panels. The panels deliberately have independent clock origins: an
 offset between PMT, beamline, and T5 systems has not been established.
+By default the script subtracts beamline TDC references 31 and 46, following
+`beam_monitors_pid.py`: IDs <=31 use reference 31, IDs >31 use reference 46.
+Missing references leave the affected bank unavailable for tagging instead
+of silently using raw times. `beam_hits.csv` stores both raw and corrected
+times. Use `--tdc-time-mode raw` only to compare with older plots. After
+checking a measured cross-system offset, use `--tdc-to-pmt-offset-ns VALUE`
+to show reference-corrected TDC hits on the WCTE PMT axis. T5 stays separate.
 `window_summary.csv` retains ROOT entry/event/readout identifiers;
 `beam_hits.csv` retains *every* TDC hit, including repeated channel IDs,
 with HD-to-T0 matches; `pmt_peaks.csv` records high-count histogram bins
@@ -111,6 +118,12 @@ group-gap and PMT burst-gap shapes. T0 hits less than 50 ns apart are
 grouped; **50 ns is a grouping resolution, not an assumed T9 bunch period**.
 `bursts.csv`, `gaps.csv`, and `t0_group_gaps.csv` preserve per-window values
 and ROOT entry/readout IDs; `summary.json` records counts and thresholds.
+The study now uses TDC references 31/46 by default, and writes
+`alignment_candidates.csv` and `alignment_candidates.png` from windows with
+one T0 group and one PMT burst in the configurable 1500–1900 ns prompt
+range. Inspect that distribution and its stability across run segments
+before using its median for `--tdc-to-pmt-offset-ns`. The empirical offset
+includes beam-particle and light-propagation delays.
 The beamline TDC and WCTE PMT clocks remain unaligned, and a missing later
 T0 group does not prove that a later PMT burst was not beam-related. Gap
 peaks alone cannot assign individual particles or distinguish delayed
@@ -130,6 +143,19 @@ different geometry. Optional --t5-quality and --vme-quality flags apply
 those existing DataLoader selections when the corresponding branches are
 present. Check time and charge distributions before comparing real data
 with simulation: this adapter does not perform detector-response calibration.
+
+Every export writes `<output-stem>_conversion_manifest.json` beside the NPZ
+parts, recording its input, output parts, cuts, mapping, and timing provenance.
+The converter copies `hit_pmt_calibrated_times` and applies **no additional
+PMT timing offsets**. Production obtains run-valid `timing_offsets` from the
+WCTE calibration database and subtracts them upstream. If the merged ROOT
+`Configuration` tree lacks the exact calibration revision or numerical
+constants, the manifest explicitly says so. The batch worker moves this
+manifest into `converted_npz` with the parts.
+
+Do not subtract an external LED-offset JSON again from this calibrated branch.
+Before using one to reprocess *raw* hit times, verify its run/time validity,
+official status, PMT-ID convention, sign, and the upstream revision.
 
 ### Batch conversion on CERN
 

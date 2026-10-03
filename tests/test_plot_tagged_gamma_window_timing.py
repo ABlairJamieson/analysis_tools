@@ -33,8 +33,9 @@ def test_root_window_diagnostic_outputs(tmp_path):
             "hit_pmt_calibrated_times": ak.Array([[1710, 1711, 2010, 2011], [1710]]),
             "hit_pmt_charges": ak.Array([[1, 1, 1, 1], [1]]),
             "hit_pmt_readout_mask": ak.Array([[0, 0, 0, 0], [0]]),
-            "beamline_pmt_tdc_ids": ak.Array([[0, 0, 8, 32, 32], [0, 8, 11, 32]]),
-            "beamline_pmt_tdc_times": ak.Array([[10, 310, 20, 35, 335], [10, 20, 25, 35]]),
+            "beamline_pmt_tdc_ids": ak.Array([[31, 46, 0, 0, 8, 32, 32], [31, 46, 0, 8, 11, 32]]),
+            "beamline_pmt_tdc_times": ak.Array([[100, 200, 110, 410, 120, 235, 535],
+                                                   [100, 200, 110, 120, 125, 235]]),
             "T5_hit_time": ak.Array([[], [4.0]]),
         })
 
@@ -51,8 +52,11 @@ def test_root_window_diagnostic_outputs(tmp_path):
     assert rows[0]["root_entry"] == "0"
     assert rows[0]["n_hd_t0_matches"] == "2"
     assert rows[0]["n_pmt_peaks"] == "2"
+    assert rows[0]["has_ref31"] == "1"
+    assert rows[0]["has_ref46"] == "1"
     assert (output / rows[0]["plot"]).stat().st_size > 0
     with (output / "beam_hits.csv").open(newline="") as handle:
         hits = list(csv.DictReader(handle))
     assert [row["channel_id"] for row in hits].count("0") == 2
     assert [row["matched_t0_times"] for row in hits if row["channel_id"] == "32"] == ["10.0", "310.0"]
+    assert [row["reference_corrected_tdc_time_ns"] for row in hits if row["channel_id"] == "32"] == ["35.0", "335.0"]

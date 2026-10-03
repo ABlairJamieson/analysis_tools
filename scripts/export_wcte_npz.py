@@ -4,6 +4,7 @@
 The ROOT input is an already calibrated WCTEReadoutWindows production file.
 DataLoader applies the WCTE window and hit quality masks. WCSimPMTMapping
 converts (mPMT slot, PMT position) to zero-based WatChMaL digit PMT IDs.
+It never subtracts another PMT timing-offset set from calibrated input.
 """
 from __future__ import annotations
 
@@ -182,6 +183,36 @@ def _write_part(output: Path, part: int, columns: dict, single_part: bool):
     return path
 
 
+def _timing_provenance(root_file) -> dict:
+    """Read timing metadata actually present in a merged production ROOT file."""
+    result = {
+        "input_time_branch": "hit_pmt_calibrated_times",
+        "input_times_already_calibrated": True,
+        "additional_offsets_applied_by_converter": [],
+        "production_timing_constants": "calibration database timing_offsets (applied upstream)",
+        "production_revision_id": None,
+        "production_official_flag": None,
+        "production_insert_time": None,
+        "production_constant_channel_count": None,
+        "warning": "The merged ROOT file may not retain numerical timing offsets or their database revision; this manifest does not invent them.",
+    }
+    if "Configuration" not in root_file:
+        return result
+    tree = root_file["Configuration"]
+    if tree.num_entries == 0:
+        return result
+    fields = set(tree.keys())
+    for branch, key in (("timing_constant_revision_id", "production_revision_id"),
+                        ("timing_constant_official_flag", "production_official_flag"),
+                        ("timing_constant_insert_time", "production_insert_time")):
+        if branch in fields:
+            result[key] = ak.to_list(tree[branch].array(entry_start=0, entry_stop=1)[0])
+    if "wcte_pmts_with_timing_constant" in fields:
+        result["production_constant_channel_count"] = int(ak.num(
+            tree["wcte_pmts_with_timing_constant"].array(entry_start=0, entry_stop=1)[0], axis=0))
+    return result
+
+
 def export_root(
     input_path: Path,
     output_path: Path,
@@ -208,6 +239,7 @@ def export_root(
 
     mapping = WCSimPMTMapping(str(mapping_file) if mapping_file else None)
     with DataLoader(str(input_path), branches_to_load=[]) as loader:
+        timing_provenance = _timing_provenance(loader.file)
         available = set(loader.file["WCTEReadoutWindows"].keys())
         required = (*HIT_FIELDS, *DQ_FIELDS, "event_number")
         if t5_quality:
@@ -239,6 +271,7 @@ def export_root(
                        if diagnostics_dir is not None else None)
         n_exported = n_unmapped = part = 0
         outputs = []
+        part_windows = []
         raw_batches = loader.file["WCTEReadoutWindows"].iterate(
             expressions=loader.branches_to_load, step_size=step_size,
             entry_stop=max_input_windows, library="ak"
@@ -280,6 +313,7 @@ def export_root(
 
                 n_exported += 1
                 if len(columns["event_id"]) == events_per_file:
+                    part_windows.append(len(columns["event_id"]))
                     outputs.append(_write_part(output_path, part, columns, single_part=False))
                     part += 1
                     columns = {name: [] for name in names}
@@ -289,6 +323,7 @@ def export_root(
                 break
 
         if columns["event_id"]:
+            part_windows.append(len(columns["event_id"]))
             outputs.append(_write_part(
                 output_path, part, columns, single_part=(part == 0),
             ))
@@ -296,6 +331,22 @@ def export_root(
               f"excluded {n_unmapped} hits absent from WCSim geometry")
         if diagnostics is not None:
             diagnostics.finish()
+        manifest_path = output_path.with_name(f"{output_path.stem}_conversion_manifest.json")
+        manifest = {
+            "input_root": str(input_path),
+            "input_root_size_bytes": input_path.stat().st_size,
+            "output_parts": [{"file": path.name, "windows": count}
+                             for path, count in zip(outputs, part_windows)],
+            "exported_windows": n_exported,
+            "unmapped_hits": n_unmapped,
+            "mapping_file": str(mapping_file) if mapping_file else "repository_default_wcsim_v1_12_29",
+            "applied_quality_cuts": {"window_and_hit": True, "t5": t5_quality, "vme": vme_quality},
+            "timing": timing_provenance,
+        }
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        print(f"Timing: production-calibrated PMT times; converter applied no additional offsets. "
+              f"DB revision in merged file: {timing_provenance['production_revision_id']}. "
+              f"Manifest: {manifest_path}", flush=True)
         return outputs
 
 

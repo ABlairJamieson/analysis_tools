@@ -42,8 +42,9 @@ def test_root_burst_gap_outputs(tmp_path):
             "hit_pmt_readout_mask": ak.Array([[0] * 8, [0] * 8]),
             "hit_mpmt_slot_ids": ak.Array([[1] * 8, [1] * 8]),
             "hit_pmt_position_ids": ak.Array([list(range(8)), list(range(8))]),
-            "beamline_pmt_tdc_ids": ak.Array([[0, 0, 8, 32, 32], [0, 8, 11, 32]]),
-            "beamline_pmt_tdc_times": ak.Array([[10, 310, 20, 35, 335], [10, 20, 25, 35]]),
+            "beamline_pmt_tdc_ids": ak.Array([[31, 46, 0, 0, 8, 32, 32], [31, 46, 0, 8, 11, 32]]),
+            "beamline_pmt_tdc_times": ak.Array([[100, 200, 110, 410, 120, 235, 535],
+                                                   [100, 200, 110, 120, 125, 235]]),
         })
     output = tmp_path / "gaps"
     args = argparse.Namespace(input_root=root_path, output_dir=output, selection="tagged",
@@ -63,5 +64,7 @@ def test_root_burst_gap_outputs(tmp_path):
         t0_gaps = list(csv.DictReader(handle))
     assert len(t0_gaps) == 1
     assert float(t0_gaps[0]["gap_ns"]) == 300
+    assert summary["tdc_time_mode"] == "reference"
+    assert summary["counts"].get("windows_missing_tdc_ref31", 0) == 0
     assert (output / "burst_gap_histograms.png").stat().st_size > 0
     assert (output / "t0_vs_pmt_gap_histograms.png").stat().st_size > 0

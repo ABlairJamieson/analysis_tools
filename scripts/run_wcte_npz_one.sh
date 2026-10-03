@@ -50,6 +50,12 @@ if (( ${#parts[@]} == 0 )); then
     exit 1
 fi
 mv -- "${parts[@]}" "$output_dir/"
+manifests=("$stage"/*_conversion_manifest.json)
+if (( ${#manifests[@]} != 1 )); then
+    echo "Expected exactly one conversion manifest in $stage" >&2
+    exit 1
+fi
+mv -- "${manifests[@]}" "$output_dir/"
 rmdir "$stage"
 touch "$output_dir/conversion.done"
 echo "Finished run $run: ${#parts[@]} NPZ part(s) in $output_dir"

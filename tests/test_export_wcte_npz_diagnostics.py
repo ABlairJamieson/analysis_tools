@@ -2,8 +2,9 @@ import csv
 import json
 
 import awkward as ak
+import uproot
 
-from scripts.export_wcte_npz import CutDiagnostics, _bit_reasons
+from scripts.export_wcte_npz import CutDiagnostics, _bit_reasons, _timing_provenance
 
 
 def test_cut_diagnostics_reports_overlapping_reasons(tmp_path):
@@ -42,3 +43,29 @@ def test_cut_diagnostics_reports_overlapping_reasons(tmp_path):
 
 def test_unknown_mask_bits_are_identified():
     assert _bit_reasons(36, {1: "a", 4: "b"}) == ["b", "unknown_bits_0x20"]
+
+
+def test_timing_provenance_does_not_invent_offset_revision(tmp_path):
+    path = tmp_path / "merged.root"
+    with uproot.recreate(path) as root:
+        config = root.mktree("Configuration", {"wcte_pmts_with_timing_constant": "var * int32"})
+        config.extend({"wcte_pmts_with_timing_constant": ak.Array([[101, 102]])})
+    with uproot.open(path) as root:
+        timing = _timing_provenance(root)
+    assert timing["input_time_branch"] == "hit_pmt_calibrated_times"
+    assert timing["additional_offsets_applied_by_converter"] == []
+    assert timing["production_constant_channel_count"] == 2
+    assert timing["production_revision_id"] is None
+
+
+def test_timing_provenance_reports_revision_when_present(tmp_path):
+    path = tmp_path / "with_revision.root"
+    with uproot.recreate(path) as root:
+        config = root.mktree("Configuration", {"timing_constant_revision_id": "int32",
+                                                 "timing_constant_official_flag": "int32"})
+        config.extend({"timing_constant_revision_id": [17],
+                       "timing_constant_official_flag": [1]})
+    with uproot.open(path) as root:
+        timing = _timing_provenance(root)
+    assert timing["production_revision_id"] == 17
+    assert timing["production_official_flag"] == 1
