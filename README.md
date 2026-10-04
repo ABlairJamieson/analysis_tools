@@ -133,9 +133,15 @@ For a full run, omit --max-events. The script writes files such as
 R1827_part00000.npz, with 5000 quality-selected windows per file by default.
 Use --events-per-file to change that limit. The output contains
 digi_hit_pmt, digi_hit_time, digi_hit_charge, and event_id, plus available
-run/readout identifiers. window_time is retained separately as metadata;
+run/readout identifiers. Converter schema v2 also retains the original
+`root_entry` and, when both branches exist, the raw
+`beamline_pmt_tdc_ids`/`beamline_pmt_tdc_times` arrays (including reference
+hits and repeated channel IDs). `window_time` is retained separately as metadata;
 the calibrated hit times are left in their original readout-window time
 convention. The exporter does not invent WCSim trigger indices or truth.
+The converter does not align beamline TDC and PMT clocks, and it refuses to
+overwrite an existing conversion. Preserve earlier parts in a separate
+directory when regenerating.
 
 The default WCSim map is the package's v1.12.29 geometry. Use
 --mapping-file /path/to/wcsim_geofile.txt if the simulation analysis uses a
@@ -185,6 +191,57 @@ uses the quality-selected exporter, and writes a conversion.done marker
 only when all NPZ parts for that run have completed. It refuses to overwrite
 existing NPZ files without that marker. Inspect any failed run's logs and
 .conversion_in_progress directory before resubmitting.
+
+### Rebuild run 1827 for a ROOT-versus-NPZ delayed-burst check
+
+The earlier `converted_npz` parts lack beamline TDC hits and original ROOT
+entries, so they cannot reproduce the ROOT study's `tagged` selection or
+support a one-to-one comparison. Make a **new** v2 directory, preserving the
+old parts:
+
+```bash
+python3 scripts/prepare_wcte_npz_batch.py --runs 1827 \
+  --output-subdir converted_npz_v2 \
+  --submission-dir outputs/wcte_npz_v2_batch
+module load lxbatch/eossubmit
+condor_submit outputs/wcte_npz_v2_batch/convert_wcte_npz.sub
+```
+
+Wait for `1827/converted_npz_v2/conversion.done` and check the manifest
+reports `schema_version: 2`, `root_entry_preserved: true`, and
+`beamline_tdc_fields_preserved: true`. The converter copies calibrated PMT
+and raw TDC times unchanged; reference correction happens in the study.
+
+For the same first 10,000 ROOT entries as a ROOT pilot, use:
+
+```bash
+BASE=/eos/experiment/wcte/data/2025_commissioning/processed_offline_data/production_v1_0
+python3 scripts/study_wcte_npz_burst_gaps.py \
+  "$BASE/1827/converted_npz_v2" --entry-stop 10000 \
+  --output-dir outputs/R1827_npz_burst_gaps_pilot
+python3 scripts/compare_wcte_burst_exports.py \
+  outputs/R1827_root_burst_gaps_pilot outputs/R1827_npz_burst_gaps_pilot
+```
+
+The comparison expects the ROOT pilot to have been run with the same
+`--scan-windows 10000`, selection, reference mode, and burst thresholds.
+It checks selected-window counts and per-entry burst/gap CSVs and exits
+nonzero on differences. Unmapped WCSim PMTs are omitted by the converter,
+so investigate any mismatch rather than assuming equivalence. Both studies
+write `bursts.csv` in the format accepted by
+`scripts/fit_wcte_delayed_bursts.py`. To analyze all converted windows, omit
+`--entry-stop` and then run the same lifetime-check command on the NPZ
+study output's `bursts.csv`; this is still exploratory, not a Michel tag.
+For example:
+
+```bash
+python3 scripts/study_wcte_npz_burst_gaps.py \
+  "$BASE/1827/converted_npz_v2" \
+  --output-dir outputs/R1827_npz_burst_gaps_full
+python3 scripts/fit_wcte_delayed_bursts.py \
+  outputs/R1827_npz_burst_gaps_full/bursts.csv \
+  --output-dir outputs/R1827_npz_lifetime_full
+```
 
 # Installation
 

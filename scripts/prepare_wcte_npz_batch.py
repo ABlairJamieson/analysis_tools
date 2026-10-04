@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 from pathlib import Path
 
 DEFAULT_RUNS = (
@@ -37,9 +38,12 @@ def prepare(
     memory_gb: int,
     max_runtime_hours: int,
     events_per_file: int,
+    output_subdir: str = "converted_npz",
 ):
     if memory_gb < 1 or max_runtime_hours < 1 or events_per_file < 1:
         raise ValueError("Memory, runtime, and events-per-file must be positive")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", output_subdir):
+        raise ValueError("--output-subdir must be one shell-safe directory name")
     repo = _eos_path(repo_dir)
     submission = Path(_eos_path(submission_dir))
     worker = Path(repo) / "scripts" / "run_wcte_npz_one.sh"
@@ -56,7 +60,7 @@ def prepare(
     unwritable = []
     for run in dict.fromkeys(runs):
         source = base / str(run) / f"WCTE_merged_production_R{run}.root"
-        destination = base / str(run) / "converted_npz"
+        destination = base / str(run) / output_subdir
         if not source.is_file():
             missing.append(str(source))
             continue
@@ -128,12 +132,15 @@ def main():
     parser.add_argument("--memory-gb", type=int, default=32)
     parser.add_argument("--max-runtime-hours", type=int, default=72)
     parser.add_argument("--events-per-file", type=int, default=5000)
+    parser.add_argument("--output-subdir", default="converted_npz",
+                        help="Per-run NPZ directory; use converted_npz_v2 to preserve old parts")
     args = parser.parse_args()
     repo = args.repo_dir.absolute()
     submission = args.submission_dir or repo / "outputs" / "wcte_npz_batch"
     prepare(
         args.base_dir, repo, submission, tuple(args.runs),
         args.memory_gb, args.max_runtime_hours, args.events_per_file,
+        args.output_subdir,
     )
 
 

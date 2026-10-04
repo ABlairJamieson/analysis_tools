@@ -25,6 +25,7 @@ HIT_FIELDS = (
 )
 DQ_FIELDS = ("window_data_quality_mask", "hit_pmt_readout_mask")
 OPTIONAL_FIELDS = ("run_id", "sub_run_id", "spill_counter", "readout_number", "window_time")
+BEAMLINE_FIELDS = ("beamline_pmt_tdc_ids", "beamline_pmt_tdc_times")
 T5_FIELDS = ("T5_HasValidHit", "T5_HasMultipleScintillatorsHit", "T5_HasInTimeWindow")
 VME_FIELDS = ("vme_digi_issues_bitmask", "vme_evt_quality_bitmask")
 WINDOW_BITS = {1: "periodic_67_issue", 2: "slow_control_excluded", 4: "missing_waveforms",
@@ -177,7 +178,8 @@ def _write_part(output: Path, part: int, columns: dict, single_part: bool):
     path = output if single_part else output.with_name(f"{output.stem}_part{part:05d}.npz")
     payload = {}
     for key, values in columns.items():
-        payload[key] = _rows(values) if key.startswith("digi_hit_") else np.asarray(values)
+        payload[key] = (_rows(values) if key.startswith("digi_hit_") or key in BEAMLINE_FIELDS
+                        else np.asarray(values))
     np.savez_compressed(path, **payload)
     print(f"{path}: {len(columns['event_id'])} windows", flush=True)
     return path
@@ -236,6 +238,10 @@ def export_root(
         raise ValueError("--events-per-file must be positive")
     if output_path.suffix.lower() != ".npz":
         raise ValueError("Output path must end in .npz")
+    manifest_path = output_path.with_name(f"{output_path.stem}_conversion_manifest.json")
+    if (output_path.exists() or manifest_path.exists()
+            or any(output_path.parent.glob(f"{output_path.stem}_part*.npz"))):
+        raise FileExistsError(f"Conversion output already exists for {output_path}; use a fresh directory")
 
     mapping = WCSimPMTMapping(str(mapping_file) if mapping_file else None)
     with DataLoader(str(input_path), branches_to_load=[]) as loader:
@@ -249,10 +255,15 @@ def export_root(
         missing = sorted(set(required) - available)
         if missing:
             raise ValueError("Missing required branches for requested cuts: " + ", ".join(missing))
+        beamline_present = [name in available for name in BEAMLINE_FIELDS]
+        if any(beamline_present) and not all(beamline_present):
+            raise ValueError("Beamline TDC IDs and times must both be present or both absent")
+        has_beamline = all(beamline_present)
 
         diagnostic_fields = (*T5_FIELDS, *VME_FIELDS) if diagnostics_dir is not None else ()
         loader.branches_to_load = list(dict.fromkeys(
-            (*required, *(name for name in (*OPTIONAL_FIELDS, *diagnostic_fields) if name in available))
+            (*required, *(name for name in (*OPTIONAL_FIELDS, *BEAMLINE_FIELDS, *diagnostic_fields)
+                          if name in available))
         ))
         loader.apply_mPMT_data_quality_cuts()
         if t5_quality:
@@ -261,9 +272,9 @@ def export_root(
             loader.apply_vme_event_quality_cuts()
 
         names = ("digi_hit_time", "digi_hit_charge", "digi_hit_pmt",
-                 "event_id", "source_file", *(
+                 "event_id", "root_entry", "source_file", *(
                      name for name in OPTIONAL_FIELDS if name in available
-                 ))
+                 ), *(BEAMLINE_FIELDS if has_beamline else ()))
         columns = {name: [] for name in names}
         output_path.parent.mkdir(parents=True, exist_ok=True)
         diagnostics = (CutDiagnostics(diagnostics_dir, t5_quality=t5_quality,
@@ -275,15 +286,18 @@ def export_root(
         raw_batches = loader.file["WCTEReadoutWindows"].iterate(
             expressions=loader.branches_to_load, step_size=step_size,
             entry_stop=max_input_windows, library="ak"
-        ) if diagnostics is not None else None
-        for raw_batch in raw_batches if raw_batches is not None else loader.iterate(
-            step_size=step_size, entry_stop=max_input_windows
-        ):
+        )
+        raw_entry_start = 0
+        for raw_batch in raw_batches:
             if diagnostics is not None:
                 diagnostics.record(raw_batch)
-                batch = loader._apply_all_data_quality_cuts(raw_batch)
-            else:
-                batch = raw_batch
+            # Add the original ROOT entry *before* DataLoader removes bad
+            # windows, so filtered NPZ parts can be matched back to ROOT.
+            raw_batch = ak.with_field(raw_batch,
+                                      np.arange(raw_entry_start, raw_entry_start + len(raw_batch)),
+                                      "root_entry")
+            raw_entry_start += len(raw_batch)
+            batch = loader._apply_all_data_quality_cuts(raw_batch)
             for event in batch:
                 times = np.asarray(event["hit_pmt_calibrated_times"], dtype=np.float64)
                 charges = np.asarray(event["hit_pmt_charges"], dtype=np.float64)
@@ -306,10 +320,14 @@ def export_root(
                 columns["digi_hit_charge"].append(charges[valid])
                 columns["digi_hit_pmt"].append(np.atleast_1d(mapped).astype(np.int64))
                 columns["event_id"].append(int(event["event_number"]))
+                columns["root_entry"].append(int(event["root_entry"]))
                 columns["source_file"].append(str(input_path))
                 for name in OPTIONAL_FIELDS:
                     if name in columns:
                         columns[name].append(event[name])
+                for name in BEAMLINE_FIELDS:
+                    if name in columns:
+                        columns[name].append(np.asarray(event[name]))
 
                 n_exported += 1
                 if len(columns["event_id"]) == events_per_file:
@@ -331,8 +349,8 @@ def export_root(
               f"excluded {n_unmapped} hits absent from WCSim geometry")
         if diagnostics is not None:
             diagnostics.finish()
-        manifest_path = output_path.with_name(f"{output_path.stem}_conversion_manifest.json")
         manifest = {
+            "schema_version": 2,
             "input_root": str(input_path),
             "input_root_size_bytes": input_path.stat().st_size,
             "output_parts": [{"file": path.name, "windows": count}
@@ -341,8 +359,15 @@ def export_root(
             "unmapped_hits": n_unmapped,
             "mapping_file": str(mapping_file) if mapping_file else "repository_default_wcsim_v1_12_29",
             "applied_quality_cuts": {"window_and_hit": True, "t5": t5_quality, "vme": vme_quality},
+            "root_entry_preserved": True,
+            "beamline_tdc_fields_preserved": has_beamline,
             "timing": timing_provenance,
         }
+        manifest["timing"]["beamline_tdc_times"] = (
+            "Raw beamline TDC branch times copied unchanged; reference-channel subtraction "
+            "is performed by the downstream analysis, not the converter."
+            if has_beamline else "Beamline TDC branches absent from input ROOT file.")
+        manifest["timing"]["pmt_to_tdc_absolute_alignment"] = None
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         print(f"Timing: production-calibrated PMT times; converter applied no additional offsets. "
               f"DB revision in merged file: {timing_provenance['production_revision_id']}. "
