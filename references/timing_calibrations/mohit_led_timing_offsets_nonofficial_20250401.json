@@ -1,0 +1,5867 @@
+{
+    "start_run_number": "20250401183945",
+    "end_run_number": "20250401183945",
+    "start_time": "20250401183945",
+    "end_time": "20250401183945",
+    "calibration_name": "timing_offsets",
+    "calibration_method": "LED",
+    "official": false,
+    "data": [
+        {
+            "channel_id": 0,
+            "timing_offset": -122.0361753227165
+        },
+        {
+            "channel_id": 1,
+            "timing_offset": -121.4200530656278
+        },
+        {
+            "channel_id": 2,
+            "timing_offset": -123.90305290323009
+        },
+        {
+            "channel_id": 3,
+            "timing_offset": -121.62840564190407
+        },
+        {
+            "channel_id": 4,
+            "timing_offset": -124.41740076207445
+        },
+        {
+            "channel_id": 5,
+            "timing_offset": -123.97476878994247
+        },
+        {
+            "channel_id": 6,
+            "timing_offset": -121.68150893242147
+        },
+        {
+            "channel_id": 7,
+            "timing_offset": -123.33340590726093
+        },
+        {
+            "channel_id": 8,
+            "timing_offset": -122.32425358574817
+        },
+        {
+            "channel_id": 9,
+            "timing_offset": -123.60911441695058
+        },
+        {
+            "channel_id": 10,
+            "timing_offset": -123.04755073062516
+        },
+        {
+            "channel_id": 11,
+            "timing_offset": -122.73437938551248
+        },
+        {
+            "channel_id": 12,
+            "timing_offset": -123.16335790719047
+        },
+        {
+            "channel_id": 13,
+            "timing_offset": -122.956320485291
+        },
+        {
+            "channel_id": 14,
+            "timing_offset": -122.18088917577113
+        },
+        {
+            "channel_id": 15,
+            "timing_offset": -122.12285749399035
+        },
+        {
+            "channel_id": 16,
+            "timing_offset": -122.56162929337506
+        },
+        {
+            "channel_id": 17,
+            "timing_offset": -122.42229321429784
+        },
+        {
+            "channel_id": 18,
+            "timing_offset": -122.29450358253338
+        },
+        {
+            "channel_id": 100,
+            "timing_offset": -428.5566406245888
+        },
+        {
+            "channel_id": 102,
+            "timing_offset": -430.2657570716822
+        },
+        {
+            "channel_id": 103,
+            "timing_offset": -430.058945029901
+        },
+        {
+            "channel_id": 104,
+            "timing_offset": -431.44911136133356
+        },
+        {
+            "channel_id": 105,
+            "timing_offset": -429.979578477991
+        },
+        {
+            "channel_id": 106,
+            "timing_offset": -431.11335455884733
+        },
+        {
+            "channel_id": 107,
+            "timing_offset": -430.59286032949825
+        },
+        {
+            "channel_id": 108,
+            "timing_offset": -430.44426739574806
+        },
+        {
+            "channel_id": 109,
+            "timing_offset": -430.338791044798
+        },
+        {
+            "channel_id": 110,
+            "timing_offset": -429.2853307656844
+        },
+        {
+            "channel_id": 111,
+            "timing_offset": -429.64387005938414
+        },
+        {
+            "channel_id": 113,
+            "timing_offset": -433.4845934518987
+        },
+        {
+            "channel_id": 114,
+            "timing_offset": -426.24941854725483
+        },
+        {
+            "channel_id": 115,
+            "timing_offset": -431.57078233576084
+        },
+        {
+            "channel_id": 116,
+            "timing_offset": -430.5267646149653
+        },
+        {
+            "channel_id": 117,
+            "timing_offset": -430.37418682981996
+        },
+        {
+            "channel_id": 118,
+            "timing_offset": -431.3023044779136
+        },
+        {
+            "channel_id": 200,
+            "timing_offset": -872.8568752340253
+        },
+        {
+            "channel_id": 201,
+            "timing_offset": -872.951164328394
+        },
+        {
+            "channel_id": 202,
+            "timing_offset": -873.5599651931441
+        },
+        {
+            "channel_id": 203,
+            "timing_offset": -873.8880873364518
+        },
+        {
+            "channel_id": 204,
+            "timing_offset": -873.3820386370159
+        },
+        {
+            "channel_id": 205,
+            "timing_offset": -873.207650979687
+        },
+        {
+            "channel_id": 206,
+            "timing_offset": -875.1872943388682
+        },
+        {
+            "channel_id": 207,
+            "timing_offset": -874.5387298922371
+        },
+        {
+            "channel_id": 208,
+            "timing_offset": -873.842846243554
+        },
+        {
+            "channel_id": 209,
+            "timing_offset": -873.2488784658611
+        },
+        {
+            "channel_id": 210,
+            "timing_offset": -874.2330365731353
+        },
+        {
+            "channel_id": 211,
+            "timing_offset": -873.3277494652411
+        },
+        {
+            "channel_id": 212,
+            "timing_offset": -872.1458269631511
+        },
+        {
+            "channel_id": 213,
+            "timing_offset": -873.2339931726723
+        },
+        {
+            "channel_id": 215,
+            "timing_offset": -873.0252393707555
+        },
+        {
+            "channel_id": 216,
+            "timing_offset": -873.255683678065
+        },
+        {
+            "channel_id": 217,
+            "timing_offset": -873.1775161750779
+        },
+        {
+            "channel_id": 218,
+            "timing_offset": -874.1393057123526
+        },
+        {
+            "channel_id": 300,
+            "timing_offset": 470.98594716305547
+        },
+        {
+            "channel_id": 301,
+            "timing_offset": 471.1224505753604
+        },
+        {
+            "channel_id": 302,
+            "timing_offset": 471.45902537157224
+        },
+        {
+            "channel_id": 303,
+            "timing_offset": 472.4692426314918
+        },
+        {
+            "channel_id": 304,
+            "timing_offset": 471.74603457281
+        },
+        {
+            "channel_id": 305,
+            "timing_offset": 472.7434590140394
+        },
+        {
+            "channel_id": 306,
+            "timing_offset": 470.51538462096397
+        },
+        {
+            "channel_id": 307,
+            "timing_offset": 472.4873906145091
+        },
+        {
+            "channel_id": 308,
+            "timing_offset": 472.12607409770067
+        },
+        {
+            "channel_id": 309,
+            "timing_offset": 471.9373332749123
+        },
+        {
+            "channel_id": 310,
+            "timing_offset": 472.5719314115425
+        },
+        {
+            "channel_id": 311,
+            "timing_offset": 470.967928420495
+        },
+        {
+            "channel_id": 312,
+            "timing_offset": 471.39838604255027
+        },
+        {
+            "channel_id": 314,
+            "timing_offset": 471.9857639068367
+        },
+        {
+            "channel_id": 315,
+            "timing_offset": 472.3007568269562
+        },
+        {
+            "channel_id": 316,
+            "timing_offset": 471.19687799214955
+        },
+        {
+            "channel_id": 317,
+            "timing_offset": 471.9424797161369
+        },
+        {
+            "channel_id": 318,
+            "timing_offset": 471.9501429555557
+        },
+        {
+            "channel_id": 400,
+            "timing_offset": 119.82295505824385
+        },
+        {
+            "channel_id": 401,
+            "timing_offset": 119.6003412521879
+        },
+        {
+            "channel_id": 402,
+            "timing_offset": 120.67854226488743
+        },
+        {
+            "channel_id": 403,
+            "timing_offset": 120.18162345352746
+        },
+        {
+            "channel_id": 404,
+            "timing_offset": 119.6479053007331
+        },
+        {
+            "channel_id": 405,
+            "timing_offset": 120.7155779380442
+        },
+        {
+            "channel_id": 406,
+            "timing_offset": 120.02298429364639
+        },
+        {
+            "channel_id": 407,
+            "timing_offset": 119.37529280098357
+        },
+        {
+            "channel_id": 408,
+            "timing_offset": 120.01384925733409
+        },
+        {
+            "channel_id": 409,
+            "timing_offset": 121.0259628865603
+        },
+        {
+            "channel_id": 410,
+            "timing_offset": 120.62540119644972
+        },
+        {
+            "channel_id": 411,
+            "timing_offset": 118.70998158182894
+        },
+        {
+            "channel_id": 412,
+            "timing_offset": 120.98988481232055
+        },
+        {
+            "channel_id": 413,
+            "timing_offset": 119.42016475207998
+        },
+        {
+            "channel_id": 414,
+            "timing_offset": 119.39329489429556
+        },
+        {
+            "channel_id": 416,
+            "timing_offset": 118.42023666875058
+        },
+        {
+            "channel_id": 417,
+            "timing_offset": 120.04516516536036
+        },
+        {
+            "channel_id": 418,
+            "timing_offset": 120.11466483747301
+        },
+        {
+            "channel_id": 500,
+            "timing_offset": -5.797200577121761
+        },
+        {
+            "channel_id": 501,
+            "timing_offset": -6.025930265495186
+        },
+        {
+            "channel_id": 502,
+            "timing_offset": -5.44974808414666
+        },
+        {
+            "channel_id": 504,
+            "timing_offset": -6.876466010329207
+        },
+        {
+            "channel_id": 505,
+            "timing_offset": -6.730982264760085
+        },
+        {
+            "channel_id": 506,
+            "timing_offset": -5.584783311669874
+        },
+        {
+            "channel_id": 507,
+            "timing_offset": -5.625004665503169
+        },
+        {
+            "channel_id": 508,
+            "timing_offset": -4.684554492720979
+        },
+        {
+            "channel_id": 509,
+            "timing_offset": -5.247390765079369
+        },
+        {
+            "channel_id": 510,
+            "timing_offset": -4.242087318690392
+        },
+        {
+            "channel_id": 511,
+            "timing_offset": -4.823251367667173
+        },
+        {
+            "channel_id": 512,
+            "timing_offset": -4.890775017438095
+        },
+        {
+            "channel_id": 513,
+            "timing_offset": -5.513914342157753
+        },
+        {
+            "channel_id": 514,
+            "timing_offset": -4.854754910872355
+        },
+        {
+            "channel_id": 515,
+            "timing_offset": -6.147326428406962
+        },
+        {
+            "channel_id": 516,
+            "timing_offset": -4.936569080290864
+        },
+        {
+            "channel_id": 517,
+            "timing_offset": -4.591459795863696
+        },
+        {
+            "channel_id": 518,
+            "timing_offset": -5.100501956816692
+        },
+        {
+            "channel_id": 600,
+            "timing_offset": 254.73910872196322
+        },
+        {
+            "channel_id": 601,
+            "timing_offset": 252.6967826822747
+        },
+        {
+            "channel_id": 602,
+            "timing_offset": 252.5401699761839
+        },
+        {
+            "channel_id": 603,
+            "timing_offset": 251.80792419841268
+        },
+        {
+            "channel_id": 604,
+            "timing_offset": 252.50727148526477
+        },
+        {
+            "channel_id": 605,
+            "timing_offset": 254.5101240767303
+        },
+        {
+            "channel_id": 606,
+            "timing_offset": 254.38090851821096
+        },
+        {
+            "channel_id": 607,
+            "timing_offset": 254.238301210617
+        },
+        {
+            "channel_id": 608,
+            "timing_offset": 253.23745516122187
+        },
+        {
+            "channel_id": 609,
+            "timing_offset": 254.3947748813162
+        },
+        {
+            "channel_id": 610,
+            "timing_offset": 252.62317039815534
+        },
+        {
+            "channel_id": 611,
+            "timing_offset": 254.23158833901732
+        },
+        {
+            "channel_id": 612,
+            "timing_offset": 253.45256869089812
+        },
+        {
+            "channel_id": 613,
+            "timing_offset": 253.60897084550453
+        },
+        {
+            "channel_id": 614,
+            "timing_offset": 251.89023471366988
+        },
+        {
+            "channel_id": 615,
+            "timing_offset": 253.1236191478163
+        },
+        {
+            "channel_id": 616,
+            "timing_offset": 253.3979863869746
+        },
+        {
+            "channel_id": 617,
+            "timing_offset": 254.23160695699346
+        },
+        {
+            "channel_id": 618,
+            "timing_offset": 253.53890360084552
+        },
+        {
+            "channel_id": 700,
+            "timing_offset": 466.2688795446491
+        },
+        {
+            "channel_id": 701,
+            "timing_offset": 464.2520344819867
+        },
+        {
+            "channel_id": 702,
+            "timing_offset": 467.6094654430988
+        },
+        {
+            "channel_id": 703,
+            "timing_offset": 466.7618518740082
+        },
+        {
+            "channel_id": 704,
+            "timing_offset": 465.42475107819575
+        },
+        {
+            "channel_id": 705,
+            "timing_offset": 465.3103260559674
+        },
+        {
+            "channel_id": 706,
+            "timing_offset": 466.39131616877404
+        },
+        {
+            "channel_id": 707,
+            "timing_offset": 464.6172381150308
+        },
+        {
+            "channel_id": 708,
+            "timing_offset": 466.20892544012577
+        },
+        {
+            "channel_id": 709,
+            "timing_offset": 464.31364693184094
+        },
+        {
+            "channel_id": 710,
+            "timing_offset": 466.63082923115513
+        },
+        {
+            "channel_id": 711,
+            "timing_offset": 465.25134487965556
+        },
+        {
+            "channel_id": 713,
+            "timing_offset": 466.2164602207547
+        },
+        {
+            "channel_id": 714,
+            "timing_offset": 466.9755817555014
+        },
+        {
+            "channel_id": 715,
+            "timing_offset": 467.66919757491405
+        },
+        {
+            "channel_id": 716,
+            "timing_offset": 465.9845122337983
+        },
+        {
+            "channel_id": 717,
+            "timing_offset": 465.5920812103012
+        },
+        {
+            "channel_id": 718,
+            "timing_offset": 464.9799772388284
+        },
+        {
+            "channel_id": 800,
+            "timing_offset": -636.9803935888085
+        },
+        {
+            "channel_id": 801,
+            "timing_offset": -635.5519224016449
+        },
+        {
+            "channel_id": 802,
+            "timing_offset": -634.0835473201579
+        },
+        {
+            "channel_id": 803,
+            "timing_offset": -635.9639966873939
+        },
+        {
+            "channel_id": 804,
+            "timing_offset": -635.5312430408163
+        },
+        {
+            "channel_id": 805,
+            "timing_offset": -634.7130303784314
+        },
+        {
+            "channel_id": 806,
+            "timing_offset": -635.244152277919
+        },
+        {
+            "channel_id": 807,
+            "timing_offset": -635.0570304433577
+        },
+        {
+            "channel_id": 808,
+            "timing_offset": -634.3358309921423
+        },
+        {
+            "channel_id": 809,
+            "timing_offset": -637.8160955054714
+        },
+        {
+            "channel_id": 810,
+            "timing_offset": -637.2694075881174
+        },
+        {
+            "channel_id": 811,
+            "timing_offset": -634.9731291203333
+        },
+        {
+            "channel_id": 812,
+            "timing_offset": -634.4770299519028
+        },
+        {
+            "channel_id": 813,
+            "timing_offset": -634.8134816754534
+        },
+        {
+            "channel_id": 814,
+            "timing_offset": -633.351783696737
+        },
+        {
+            "channel_id": 815,
+            "timing_offset": -637.139788043479
+        },
+        {
+            "channel_id": 816,
+            "timing_offset": -634.0337968843588
+        },
+        {
+            "channel_id": 817,
+            "timing_offset": -635.0515487800641
+        },
+        {
+            "channel_id": 818,
+            "timing_offset": -634.5844892142561
+        },
+        {
+            "channel_id": 1000,
+            "timing_offset": -510.979075788625
+        },
+        {
+            "channel_id": 1001,
+            "timing_offset": -512.6439651097996
+        },
+        {
+            "channel_id": 1002,
+            "timing_offset": -510.157609344776
+        },
+        {
+            "channel_id": 1003,
+            "timing_offset": -512.2698866264773
+        },
+        {
+            "channel_id": 1004,
+            "timing_offset": -512.1444379331193
+        },
+        {
+            "channel_id": 1005,
+            "timing_offset": -511.7007989125102
+        },
+        {
+            "channel_id": 1006,
+            "timing_offset": -510.8149141871598
+        },
+        {
+            "channel_id": 1007,
+            "timing_offset": -511.8046653451722
+        },
+        {
+            "channel_id": 1008,
+            "timing_offset": -510.53798185715533
+        },
+        {
+            "channel_id": 1009,
+            "timing_offset": -513.4045979810081
+        },
+        {
+            "channel_id": 1011,
+            "timing_offset": -511.3607242466577
+        },
+        {
+            "channel_id": 1012,
+            "timing_offset": -511.14948184562456
+        },
+        {
+            "channel_id": 1013,
+            "timing_offset": -510.46678873459064
+        },
+        {
+            "channel_id": 1014,
+            "timing_offset": -513.0702701023238
+        },
+        {
+            "channel_id": 1015,
+            "timing_offset": -510.605941526545
+        },
+        {
+            "channel_id": 1016,
+            "timing_offset": -510.96851958830155
+        },
+        {
+            "channel_id": 1017,
+            "timing_offset": -512.2126834039725
+        },
+        {
+            "channel_id": 1018,
+            "timing_offset": -511.34613944503275
+        },
+        {
+            "channel_id": 1100,
+            "timing_offset": -510.0698528610958
+        },
+        {
+            "channel_id": 1101,
+            "timing_offset": -509.4538637820799
+        },
+        {
+            "channel_id": 1102,
+            "timing_offset": -510.22511814689705
+        },
+        {
+            "channel_id": 1103,
+            "timing_offset": -510.6031212743376
+        },
+        {
+            "channel_id": 1104,
+            "timing_offset": -510.35448609015276
+        },
+        {
+            "channel_id": 1105,
+            "timing_offset": -510.7986492219408
+        },
+        {
+            "channel_id": 1106,
+            "timing_offset": -510.8219383350426
+        },
+        {
+            "channel_id": 1107,
+            "timing_offset": -510.47786816579446
+        },
+        {
+            "channel_id": 1108,
+            "timing_offset": -510.36977763458543
+        },
+        {
+            "channel_id": 1109,
+            "timing_offset": -508.7594851331273
+        },
+        {
+            "channel_id": 1110,
+            "timing_offset": -512.1251141306349
+        },
+        {
+            "channel_id": 1111,
+            "timing_offset": -509.9057370725976
+        },
+        {
+            "channel_id": 1114,
+            "timing_offset": -510.9172291903565
+        },
+        {
+            "channel_id": 1115,
+            "timing_offset": -511.1688119966694
+        },
+        {
+            "channel_id": 1116,
+            "timing_offset": -510.75132877020104
+        },
+        {
+            "channel_id": 1117,
+            "timing_offset": -511.50108355314546
+        },
+        {
+            "channel_id": 1118,
+            "timing_offset": -509.0624722286582
+        },
+        {
+            "channel_id": 1300,
+            "timing_offset": 114.391543997116
+        },
+        {
+            "channel_id": 1301,
+            "timing_offset": 113.53539441034613
+        },
+        {
+            "channel_id": 1302,
+            "timing_offset": 114.80746203976378
+        },
+        {
+            "channel_id": 1303,
+            "timing_offset": 113.83985404733193
+        },
+        {
+            "channel_id": 1304,
+            "timing_offset": 114.41254958532161
+        },
+        {
+            "channel_id": 1305,
+            "timing_offset": 112.07854353071274
+        },
+        {
+            "channel_id": 1306,
+            "timing_offset": 112.34548648302808
+        },
+        {
+            "channel_id": 1307,
+            "timing_offset": 113.62348831325211
+        },
+        {
+            "channel_id": 1308,
+            "timing_offset": 114.87147435139914
+        },
+        {
+            "channel_id": 1309,
+            "timing_offset": 114.45814320950169
+        },
+        {
+            "channel_id": 1310,
+            "timing_offset": 114.28762004366489
+        },
+        {
+            "channel_id": 1311,
+            "timing_offset": 113.26636257860865
+        },
+        {
+            "channel_id": 1312,
+            "timing_offset": 113.58563027475242
+        },
+        {
+            "channel_id": 1313,
+            "timing_offset": 113.56053134261249
+        },
+        {
+            "channel_id": 1314,
+            "timing_offset": 114.01754477123222
+        },
+        {
+            "channel_id": 1315,
+            "timing_offset": 112.57790636871742
+        },
+        {
+            "channel_id": 1316,
+            "timing_offset": 113.50443326846498
+        },
+        {
+            "channel_id": 1317,
+            "timing_offset": 113.57551929554961
+        },
+        {
+            "channel_id": 1318,
+            "timing_offset": 114.47914143721107
+        },
+        {
+            "channel_id": 1900,
+            "timing_offset": -762.6903197031309
+        },
+        {
+            "channel_id": 1901,
+            "timing_offset": -762.1926456495182
+        },
+        {
+            "channel_id": 1902,
+            "timing_offset": -762.8474105081652
+        },
+        {
+            "channel_id": 1903,
+            "timing_offset": -762.3863325889562
+        },
+        {
+            "channel_id": 1904,
+            "timing_offset": -763.2254577877637
+        },
+        {
+            "channel_id": 1905,
+            "timing_offset": -763.0880427620336
+        },
+        {
+            "channel_id": 1906,
+            "timing_offset": -761.7451274134359
+        },
+        {
+            "channel_id": 1907,
+            "timing_offset": -762.1552402912436
+        },
+        {
+            "channel_id": 1908,
+            "timing_offset": -761.9681781285259
+        },
+        {
+            "channel_id": 1909,
+            "timing_offset": -761.9072201280386
+        },
+        {
+            "channel_id": 1910,
+            "timing_offset": -762.6128734581459
+        },
+        {
+            "channel_id": 1911,
+            "timing_offset": -761.7660077524353
+        },
+        {
+            "channel_id": 1912,
+            "timing_offset": -763.0225398120931
+        },
+        {
+            "channel_id": 1913,
+            "timing_offset": -763.961704418831
+        },
+        {
+            "channel_id": 1914,
+            "timing_offset": -763.1740899967417
+        },
+        {
+            "channel_id": 1915,
+            "timing_offset": -763.0469967986065
+        },
+        {
+            "channel_id": 1916,
+            "timing_offset": -764.3243239428676
+        },
+        {
+            "channel_id": 1917,
+            "timing_offset": -762.6062090012579
+        },
+        {
+            "channel_id": 1918,
+            "timing_offset": -762.1373656268215
+        },
+        {
+            "channel_id": 2000,
+            "timing_offset": -770.4227740307858
+        },
+        {
+            "channel_id": 2001,
+            "timing_offset": -769.0588572909163
+        },
+        {
+            "channel_id": 2002,
+            "timing_offset": -770.0600414939838
+        },
+        {
+            "channel_id": 2003,
+            "timing_offset": -768.2366521393828
+        },
+        {
+            "channel_id": 2004,
+            "timing_offset": -769.1549875663495
+        },
+        {
+            "channel_id": 2005,
+            "timing_offset": -768.1505083164113
+        },
+        {
+            "channel_id": 2006,
+            "timing_offset": -769.6396924983023
+        },
+        {
+            "channel_id": 2007,
+            "timing_offset": -768.5302917395798
+        },
+        {
+            "channel_id": 2008,
+            "timing_offset": -770.0959206553266
+        },
+        {
+            "channel_id": 2009,
+            "timing_offset": -767.9867915436448
+        },
+        {
+            "channel_id": 2012,
+            "timing_offset": -769.4571641169285
+        },
+        {
+            "channel_id": 2013,
+            "timing_offset": -768.822115584172
+        },
+        {
+            "channel_id": 2014,
+            "timing_offset": -768.3138606273598
+        },
+        {
+            "channel_id": 2015,
+            "timing_offset": -770.3059908650652
+        },
+        {
+            "channel_id": 2016,
+            "timing_offset": -771.0034879764313
+        },
+        {
+            "channel_id": 2017,
+            "timing_offset": -770.8437087553298
+        },
+        {
+            "channel_id": 2018,
+            "timing_offset": -768.3395154230943
+        },
+        {
+            "channel_id": 2100,
+            "timing_offset": -419.45037360853667
+        },
+        {
+            "channel_id": 2101,
+            "timing_offset": -418.41203601501996
+        },
+        {
+            "channel_id": 2102,
+            "timing_offset": -418.0484610843789
+        },
+        {
+            "channel_id": 2103,
+            "timing_offset": -419.44958328410826
+        },
+        {
+            "channel_id": 2104,
+            "timing_offset": -416.91147350614784
+        },
+        {
+            "channel_id": 2105,
+            "timing_offset": -417.332138145802
+        },
+        {
+            "channel_id": 2107,
+            "timing_offset": -420.44167139133395
+        },
+        {
+            "channel_id": 2108,
+            "timing_offset": -418.58978473914067
+        },
+        {
+            "channel_id": 2109,
+            "timing_offset": -418.94629380526294
+        },
+        {
+            "channel_id": 2110,
+            "timing_offset": -418.5557089752682
+        },
+        {
+            "channel_id": 2111,
+            "timing_offset": -419.6071382605877
+        },
+        {
+            "channel_id": 2112,
+            "timing_offset": -417.032315528799
+        },
+        {
+            "channel_id": 2113,
+            "timing_offset": -418.693233541123
+        },
+        {
+            "channel_id": 2114,
+            "timing_offset": -417.45103269783317
+        },
+        {
+            "channel_id": 2115,
+            "timing_offset": -419.5485941315246
+        },
+        {
+            "channel_id": 2116,
+            "timing_offset": -419.4721480183779
+        },
+        {
+            "channel_id": 2117,
+            "timing_offset": -420.299473254185
+        },
+        {
+            "channel_id": 2118,
+            "timing_offset": -419.4539810104478
+        },
+        {
+            "channel_id": 2200,
+            "timing_offset": -408.08792324055594
+        },
+        {
+            "channel_id": 2201,
+            "timing_offset": -409.00619090372066
+        },
+        {
+            "channel_id": 2202,
+            "timing_offset": -405.9343788632473
+        },
+        {
+            "channel_id": 2203,
+            "timing_offset": -409.0144142301977
+        },
+        {
+            "channel_id": 2204,
+            "timing_offset": -408.39461424046266
+        },
+        {
+            "channel_id": 2205,
+            "timing_offset": -409.78228194856433
+        },
+        {
+            "channel_id": 2207,
+            "timing_offset": -406.9978412230644
+        },
+        {
+            "channel_id": 2208,
+            "timing_offset": -409.71472490261857
+        },
+        {
+            "channel_id": 2209,
+            "timing_offset": -407.41593286809393
+        },
+        {
+            "channel_id": 2210,
+            "timing_offset": -408.2176898004772
+        },
+        {
+            "channel_id": 2211,
+            "timing_offset": -408.419834557808
+        },
+        {
+            "channel_id": 2212,
+            "timing_offset": -408.11912382927324
+        },
+        {
+            "channel_id": 2213,
+            "timing_offset": -408.77152822225145
+        },
+        {
+            "channel_id": 2214,
+            "timing_offset": -407.1432899890054
+        },
+        {
+            "channel_id": 2215,
+            "timing_offset": -409.0222493628999
+        },
+        {
+            "channel_id": 2217,
+            "timing_offset": -407.9139605552437
+        },
+        {
+            "channel_id": 2218,
+            "timing_offset": -409.96702763274345
+        },
+        {
+            "channel_id": 2300,
+            "timing_offset": -604.8453913532057
+        },
+        {
+            "channel_id": 2301,
+            "timing_offset": -603.859715101851
+        },
+        {
+            "channel_id": 2302,
+            "timing_offset": -604.4418712737898
+        },
+        {
+            "channel_id": 2303,
+            "timing_offset": -604.7536575189562
+        },
+        {
+            "channel_id": 2304,
+            "timing_offset": -605.0679743421726
+        },
+        {
+            "channel_id": 2305,
+            "timing_offset": -604.5743996318738
+        },
+        {
+            "channel_id": 2306,
+            "timing_offset": -604.0114618642165
+        },
+        {
+            "channel_id": 2307,
+            "timing_offset": -603.7755880267395
+        },
+        {
+            "channel_id": 2308,
+            "timing_offset": -603.7040766591421
+        },
+        {
+            "channel_id": 2309,
+            "timing_offset": -604.8101344910704
+        },
+        {
+            "channel_id": 2310,
+            "timing_offset": -603.0757015139116
+        },
+        {
+            "channel_id": 2311,
+            "timing_offset": -605.1227676440393
+        },
+        {
+            "channel_id": 2312,
+            "timing_offset": -603.5991504762367
+        },
+        {
+            "channel_id": 2314,
+            "timing_offset": -603.9995861699017
+        },
+        {
+            "channel_id": 2315,
+            "timing_offset": -604.067109912283
+        },
+        {
+            "channel_id": 2316,
+            "timing_offset": -605.9223149432804
+        },
+        {
+            "channel_id": 2317,
+            "timing_offset": -604.5569056437528
+        },
+        {
+            "channel_id": 2318,
+            "timing_offset": -604.2881322015724
+        },
+        {
+            "channel_id": 2400,
+            "timing_offset": -870.1510526436605
+        },
+        {
+            "channel_id": 2401,
+            "timing_offset": -870.4985256494972
+        },
+        {
+            "channel_id": 2402,
+            "timing_offset": -871.8256810727879
+        },
+        {
+            "channel_id": 2403,
+            "timing_offset": -871.3467005334292
+        },
+        {
+            "channel_id": 2404,
+            "timing_offset": -870.7767733878258
+        },
+        {
+            "channel_id": 2405,
+            "timing_offset": -870.9724532624839
+        },
+        {
+            "channel_id": 2406,
+            "timing_offset": -870.470909684555
+        },
+        {
+            "channel_id": 2407,
+            "timing_offset": -871.6070128340468
+        },
+        {
+            "channel_id": 2408,
+            "timing_offset": -870.6144394037536
+        },
+        {
+            "channel_id": 2409,
+            "timing_offset": -871.0151847359898
+        },
+        {
+            "channel_id": 2410,
+            "timing_offset": -870.5703979745691
+        },
+        {
+            "channel_id": 2411,
+            "timing_offset": -871.4660204683726
+        },
+        {
+            "channel_id": 2412,
+            "timing_offset": -871.6403228799916
+        },
+        {
+            "channel_id": 2414,
+            "timing_offset": -870.1984011063103
+        },
+        {
+            "channel_id": 2418,
+            "timing_offset": -870.746487610734
+        },
+        {
+            "channel_id": 2500,
+            "timing_offset": -608.1369973613884
+        },
+        {
+            "channel_id": 2501,
+            "timing_offset": -609.7149493601347
+        },
+        {
+            "channel_id": 2502,
+            "timing_offset": -609.1992333723294
+        },
+        {
+            "channel_id": 2503,
+            "timing_offset": -608.7117745378287
+        },
+        {
+            "channel_id": 2504,
+            "timing_offset": -607.7464300721765
+        },
+        {
+            "channel_id": 2505,
+            "timing_offset": -609.3081257609753
+        },
+        {
+            "channel_id": 2506,
+            "timing_offset": -609.9016106073922
+        },
+        {
+            "channel_id": 2507,
+            "timing_offset": -608.2746053086211
+        },
+        {
+            "channel_id": 2508,
+            "timing_offset": -609.4465541513753
+        },
+        {
+            "channel_id": 2509,
+            "timing_offset": -607.8409442517434
+        },
+        {
+            "channel_id": 2510,
+            "timing_offset": -608.7937404990694
+        },
+        {
+            "channel_id": 2511,
+            "timing_offset": -608.7026506366577
+        },
+        {
+            "channel_id": 2512,
+            "timing_offset": -609.5263871239437
+        },
+        {
+            "channel_id": 2513,
+            "timing_offset": -608.4953364210453
+        },
+        {
+            "channel_id": 2514,
+            "timing_offset": -607.6279083348365
+        },
+        {
+            "channel_id": 2515,
+            "timing_offset": -608.3830785074083
+        },
+        {
+            "channel_id": 2517,
+            "timing_offset": -609.0049936217422
+        },
+        {
+            "channel_id": 2518,
+            "timing_offset": -608.8227423835438
+        },
+        {
+            "channel_id": 2600,
+            "timing_offset": 0.49415809201044425
+        },
+        {
+            "channel_id": 2601,
+            "timing_offset": -1.0380051876620018
+        },
+        {
+            "channel_id": 2602,
+            "timing_offset": -0.9070622231795925
+        },
+        {
+            "channel_id": 2603,
+            "timing_offset": -1.9605080007712128
+        },
+        {
+            "channel_id": 2604,
+            "timing_offset": -1.638662137244704
+        },
+        {
+            "channel_id": 2605,
+            "timing_offset": -0.9579560776071845
+        },
+        {
+            "channel_id": 2606,
+            "timing_offset": -0.5186881611750052
+        },
+        {
+            "channel_id": 2607,
+            "timing_offset": -0.1488255866919952
+        },
+        {
+            "channel_id": 2608,
+            "timing_offset": -0.7335860422901532
+        },
+        {
+            "channel_id": 2609,
+            "timing_offset": -1.1881177091333688
+        },
+        {
+            "channel_id": 2610,
+            "timing_offset": -1.8197962574383544
+        },
+        {
+            "channel_id": 2611,
+            "timing_offset": -1.0524007627114371
+        },
+        {
+            "channel_id": 2612,
+            "timing_offset": -1.0528857548057104
+        },
+        {
+            "channel_id": 2613,
+            "timing_offset": -0.4958528046758731
+        },
+        {
+            "channel_id": 2614,
+            "timing_offset": -2.057096000004746
+        },
+        {
+            "channel_id": 2615,
+            "timing_offset": -1.9923279645423584
+        },
+        {
+            "channel_id": 2616,
+            "timing_offset": -2.377420034206616
+        },
+        {
+            "channel_id": 2617,
+            "timing_offset": -0.17949337374034258
+        },
+        {
+            "channel_id": 2618,
+            "timing_offset": -0.8159338912611311
+        },
+        {
+            "channel_id": 2801,
+            "timing_offset": 127.53589795138484
+        },
+        {
+            "channel_id": 2802,
+            "timing_offset": 127.76660122138301
+        },
+        {
+            "channel_id": 2803,
+            "timing_offset": 127.67581034943703
+        },
+        {
+            "channel_id": 2804,
+            "timing_offset": 126.58534674287802
+        },
+        {
+            "channel_id": 2805,
+            "timing_offset": 128.5190104849835
+        },
+        {
+            "channel_id": 2806,
+            "timing_offset": 127.88826348324584
+        },
+        {
+            "channel_id": 2807,
+            "timing_offset": 127.41102475411085
+        },
+        {
+            "channel_id": 2808,
+            "timing_offset": 128.5465635533081
+        },
+        {
+            "channel_id": 2809,
+            "timing_offset": 126.5813222920599
+        },
+        {
+            "channel_id": 2810,
+            "timing_offset": 127.55037441609811
+        },
+        {
+            "channel_id": 2811,
+            "timing_offset": 127.78821327210234
+        },
+        {
+            "channel_id": 2812,
+            "timing_offset": 128.42024130708154
+        },
+        {
+            "channel_id": 2813,
+            "timing_offset": 125.78799012016285
+        },
+        {
+            "channel_id": 2814,
+            "timing_offset": 128.30471065538376
+        },
+        {
+            "channel_id": 2815,
+            "timing_offset": 126.43118067293153
+        },
+        {
+            "channel_id": 2816,
+            "timing_offset": 126.95791985904337
+        },
+        {
+            "channel_id": 2817,
+            "timing_offset": 128.45946510433663
+        },
+        {
+            "channel_id": 2818,
+            "timing_offset": 129.4259548198526
+        },
+        {
+            "channel_id": 2900,
+            "timing_offset": -258.57318848623316
+        },
+        {
+            "channel_id": 2901,
+            "timing_offset": -259.81475731740426
+        },
+        {
+            "channel_id": 2902,
+            "timing_offset": -258.16557952600107
+        },
+        {
+            "channel_id": 2903,
+            "timing_offset": -258.5908049328112
+        },
+        {
+            "channel_id": 2904,
+            "timing_offset": -259.7246436186119
+        },
+        {
+            "channel_id": 2905,
+            "timing_offset": -259.0610892016229
+        },
+        {
+            "channel_id": 2906,
+            "timing_offset": -258.1284140620284
+        },
+        {
+            "channel_id": 2907,
+            "timing_offset": -259.4795909213561
+        },
+        {
+            "channel_id": 2908,
+            "timing_offset": -258.6397273107634
+        },
+        {
+            "channel_id": 2909,
+            "timing_offset": -259.1784184586715
+        },
+        {
+            "channel_id": 2910,
+            "timing_offset": -259.7860493447152
+        },
+        {
+            "channel_id": 2911,
+            "timing_offset": -257.64409716715664
+        },
+        {
+            "channel_id": 2912,
+            "timing_offset": -259.57106968932817
+        },
+        {
+            "channel_id": 2914,
+            "timing_offset": -259.57216377714445
+        },
+        {
+            "channel_id": 2915,
+            "timing_offset": -258.8081642600453
+        },
+        {
+            "channel_id": 2916,
+            "timing_offset": -257.9272837665156
+        },
+        {
+            "channel_id": 2917,
+            "timing_offset": -257.3977049978098
+        },
+        {
+            "channel_id": 2918,
+            "timing_offset": -259.0226706123495
+        },
+        {
+            "channel_id": 3000,
+            "timing_offset": 361.36825706326437
+        },
+        {
+            "channel_id": 3001,
+            "timing_offset": 361.6947042547633
+        },
+        {
+            "channel_id": 3002,
+            "timing_offset": 361.3642075925715
+        },
+        {
+            "channel_id": 3003,
+            "timing_offset": 360.49760553138145
+        },
+        {
+            "channel_id": 3004,
+            "timing_offset": 361.19242045078977
+        },
+        {
+            "channel_id": 3005,
+            "timing_offset": 363.4119781344604
+        },
+        {
+            "channel_id": 3006,
+            "timing_offset": 361.1695376253173
+        },
+        {
+            "channel_id": 3007,
+            "timing_offset": 361.33070954361204
+        },
+        {
+            "channel_id": 3008,
+            "timing_offset": 361.49070897680696
+        },
+        {
+            "channel_id": 3009,
+            "timing_offset": 360.73034277605257
+        },
+        {
+            "channel_id": 3010,
+            "timing_offset": 361.4622354215064
+        },
+        {
+            "channel_id": 3012,
+            "timing_offset": 361.9127566959383
+        },
+        {
+            "channel_id": 3013,
+            "timing_offset": 360.2476619282671
+        },
+        {
+            "channel_id": 3014,
+            "timing_offset": 363.1356447890146
+        },
+        {
+            "channel_id": 3015,
+            "timing_offset": 360.16952667671114
+        },
+        {
+            "channel_id": 3016,
+            "timing_offset": 362.40203537412583
+        },
+        {
+            "channel_id": 3017,
+            "timing_offset": 363.39955187298995
+        },
+        {
+            "channel_id": 3018,
+            "timing_offset": 363.38538387043377
+        },
+        {
+            "channel_id": 3100,
+            "timing_offset": -262.8326119981282
+        },
+        {
+            "channel_id": 3101,
+            "timing_offset": -263.22748055805414
+        },
+        {
+            "channel_id": 3102,
+            "timing_offset": -262.4659224282999
+        },
+        {
+            "channel_id": 3103,
+            "timing_offset": -262.86445290114244
+        },
+        {
+            "channel_id": 3104,
+            "timing_offset": -263.7530281646145
+        },
+        {
+            "channel_id": 3105,
+            "timing_offset": -261.2481138488034
+        },
+        {
+            "channel_id": 3106,
+            "timing_offset": -261.3877311761962
+        },
+        {
+            "channel_id": 3107,
+            "timing_offset": -262.47114594658564
+        },
+        {
+            "channel_id": 3108,
+            "timing_offset": -261.9128992977819
+        },
+        {
+            "channel_id": 3109,
+            "timing_offset": -264.037226534152
+        },
+        {
+            "channel_id": 3110,
+            "timing_offset": -263.6798087107943
+        },
+        {
+            "channel_id": 3111,
+            "timing_offset": -262.6926710419163
+        },
+        {
+            "channel_id": 3112,
+            "timing_offset": -262.2106114869419
+        },
+        {
+            "channel_id": 3113,
+            "timing_offset": -263.06184308725545
+        },
+        {
+            "channel_id": 3114,
+            "timing_offset": -262.7251548057591
+        },
+        {
+            "channel_id": 3115,
+            "timing_offset": -265.58493591811606
+        },
+        {
+            "channel_id": 3116,
+            "timing_offset": -261.7205439848678
+        },
+        {
+            "channel_id": 3117,
+            "timing_offset": -262.73710105660956
+        },
+        {
+            "channel_id": 3118,
+            "timing_offset": -262.50782561200134
+        },
+        {
+            "channel_id": 3300,
+            "timing_offset": -101.91064511000913
+        },
+        {
+            "channel_id": 3301,
+            "timing_offset": -101.38725935694238
+        },
+        {
+            "channel_id": 3302,
+            "timing_offset": -102.03251289799816
+        },
+        {
+            "channel_id": 3303,
+            "timing_offset": -101.6491851846093
+        },
+        {
+            "channel_id": 3304,
+            "timing_offset": -102.52254937914795
+        },
+        {
+            "channel_id": 3305,
+            "timing_offset": -100.91427228829522
+        },
+        {
+            "channel_id": 3306,
+            "timing_offset": -100.66831916893369
+        },
+        {
+            "channel_id": 3308,
+            "timing_offset": -101.16414423343092
+        },
+        {
+            "channel_id": 3309,
+            "timing_offset": -102.28478125976818
+        },
+        {
+            "channel_id": 3310,
+            "timing_offset": -102.12732239636898
+        },
+        {
+            "channel_id": 3311,
+            "timing_offset": -101.72411632420504
+        },
+        {
+            "channel_id": 3312,
+            "timing_offset": -100.67477003489897
+        },
+        {
+            "channel_id": 3313,
+            "timing_offset": -100.8837201050902
+        },
+        {
+            "channel_id": 3314,
+            "timing_offset": -99.58904889283588
+        },
+        {
+            "channel_id": 3315,
+            "timing_offset": -101.20278404461347
+        },
+        {
+            "channel_id": 3318,
+            "timing_offset": -102.07809149719643
+        },
+        {
+            "channel_id": 3400,
+            "timing_offset": -279.29650037354094
+        },
+        {
+            "channel_id": 3401,
+            "timing_offset": -278.41751955801703
+        },
+        {
+            "channel_id": 3402,
+            "timing_offset": -277.908914083202
+        },
+        {
+            "channel_id": 3403,
+            "timing_offset": -277.5093946266474
+        },
+        {
+            "channel_id": 3404,
+            "timing_offset": -277.54166125174504
+        },
+        {
+            "channel_id": 3405,
+            "timing_offset": -277.98687246073104
+        },
+        {
+            "channel_id": 3406,
+            "timing_offset": -276.75399072057576
+        },
+        {
+            "channel_id": 3407,
+            "timing_offset": -278.49251725440723
+        },
+        {
+            "channel_id": 3408,
+            "timing_offset": -278.15764806643114
+        },
+        {
+            "channel_id": 3409,
+            "timing_offset": -277.9973834563862
+        },
+        {
+            "channel_id": 3410,
+            "timing_offset": -277.793434111068
+        },
+        {
+            "channel_id": 3411,
+            "timing_offset": -277.50254805387965
+        },
+        {
+            "channel_id": 3412,
+            "timing_offset": -277.60560902773426
+        },
+        {
+            "channel_id": 3413,
+            "timing_offset": -277.4244398318762
+        },
+        {
+            "channel_id": 3414,
+            "timing_offset": -276.99108630185975
+        },
+        {
+            "channel_id": 3415,
+            "timing_offset": -276.7028083188115
+        },
+        {
+            "channel_id": 3416,
+            "timing_offset": -276.64867542367267
+        },
+        {
+            "channel_id": 3417,
+            "timing_offset": -277.8749489844919
+        },
+        {
+            "channel_id": 3418,
+            "timing_offset": -278.0071421040549
+        },
+        {
+            "channel_id": 3500,
+            "timing_offset": -753.6091043154373
+        },
+        {
+            "channel_id": 3501,
+            "timing_offset": -755.0158725841047
+        },
+        {
+            "channel_id": 3502,
+            "timing_offset": -753.654048635051
+        },
+        {
+            "channel_id": 3503,
+            "timing_offset": -754.3239388007445
+        },
+        {
+            "channel_id": 3504,
+            "timing_offset": -755.7041113267351
+        },
+        {
+            "channel_id": 3505,
+            "timing_offset": -754.5537085343631
+        },
+        {
+            "channel_id": 3506,
+            "timing_offset": -754.1597245449653
+        },
+        {
+            "channel_id": 3507,
+            "timing_offset": -754.6431278783942
+        },
+        {
+            "channel_id": 3508,
+            "timing_offset": -754.3097115327649
+        },
+        {
+            "channel_id": 3509,
+            "timing_offset": -754.6321052548302
+        },
+        {
+            "channel_id": 3510,
+            "timing_offset": -755.2524734994944
+        },
+        {
+            "channel_id": 3511,
+            "timing_offset": -754.8476437627083
+        },
+        {
+            "channel_id": 3512,
+            "timing_offset": -754.5570168972897
+        },
+        {
+            "channel_id": 3513,
+            "timing_offset": -754.147961739002
+        },
+        {
+            "channel_id": 3514,
+            "timing_offset": -755.8318380982852
+        },
+        {
+            "channel_id": 3516,
+            "timing_offset": -755.9707872699798
+        },
+        {
+            "channel_id": 3517,
+            "timing_offset": -756.9717905022453
+        },
+        {
+            "channel_id": 3518,
+            "timing_offset": -754.377896287457
+        },
+        {
+            "channel_id": 3600,
+            "timing_offset": -418.8384987803607
+        },
+        {
+            "channel_id": 3601,
+            "timing_offset": -418.1653542668624
+        },
+        {
+            "channel_id": 3602,
+            "timing_offset": -413.4364057519529
+        },
+        {
+            "channel_id": 3607,
+            "timing_offset": -418.83700933737
+        },
+        {
+            "channel_id": 3608,
+            "timing_offset": -416.5967456913789
+        },
+        {
+            "channel_id": 3609,
+            "timing_offset": -416.8956703331366
+        },
+        {
+            "channel_id": 3610,
+            "timing_offset": -413.7087859954987
+        },
+        {
+            "channel_id": 3612,
+            "timing_offset": -416.2157361500955
+        },
+        {
+            "channel_id": 3614,
+            "timing_offset": -413.9742781190217
+        },
+        {
+            "channel_id": 3700,
+            "timing_offset": -760.3802469990175
+        },
+        {
+            "channel_id": 3701,
+            "timing_offset": -756.9070959201766
+        },
+        {
+            "channel_id": 3702,
+            "timing_offset": -758.024330107438
+        },
+        {
+            "channel_id": 3703,
+            "timing_offset": -758.3128564469437
+        },
+        {
+            "channel_id": 3704,
+            "timing_offset": -757.7413014470534
+        },
+        {
+            "channel_id": 3705,
+            "timing_offset": -758.8765148109618
+        },
+        {
+            "channel_id": 3706,
+            "timing_offset": -758.0220485949776
+        },
+        {
+            "channel_id": 3707,
+            "timing_offset": -758.5299238005026
+        },
+        {
+            "channel_id": 3708,
+            "timing_offset": -757.5184779838899
+        },
+        {
+            "channel_id": 3709,
+            "timing_offset": -757.2392513416261
+        },
+        {
+            "channel_id": 3710,
+            "timing_offset": -757.559502909137
+        },
+        {
+            "channel_id": 3711,
+            "timing_offset": -757.4415590977792
+        },
+        {
+            "channel_id": 3712,
+            "timing_offset": -758.0338553805981
+        },
+        {
+            "channel_id": 3713,
+            "timing_offset": -757.5461024187822
+        },
+        {
+            "channel_id": 3714,
+            "timing_offset": -757.2289214796397
+        },
+        {
+            "channel_id": 3715,
+            "timing_offset": -758.3049583161873
+        },
+        {
+            "channel_id": 3716,
+            "timing_offset": -757.9184161177366
+        },
+        {
+            "channel_id": 3717,
+            "timing_offset": -758.646658465991
+        },
+        {
+            "channel_id": 3718,
+            "timing_offset": -757.0952273978509
+        },
+        {
+            "channel_id": 3800,
+            "timing_offset": -496.8872198729953
+        },
+        {
+            "channel_id": 3801,
+            "timing_offset": -497.86515844899577
+        },
+        {
+            "channel_id": 3802,
+            "timing_offset": -497.23970063281666
+        },
+        {
+            "channel_id": 3803,
+            "timing_offset": -496.8632305617014
+        },
+        {
+            "channel_id": 3804,
+            "timing_offset": -498.2387095609312
+        },
+        {
+            "channel_id": 3805,
+            "timing_offset": -497.0326593916965
+        },
+        {
+            "channel_id": 3806,
+            "timing_offset": -498.356910472759
+        },
+        {
+            "channel_id": 3807,
+            "timing_offset": -498.3157174224839
+        },
+        {
+            "channel_id": 3808,
+            "timing_offset": -497.59584041328236
+        },
+        {
+            "channel_id": 3809,
+            "timing_offset": -498.82014728479254
+        },
+        {
+            "channel_id": 3810,
+            "timing_offset": -497.0602293997611
+        },
+        {
+            "channel_id": 3811,
+            "timing_offset": -499.5153406617559
+        },
+        {
+            "channel_id": 3812,
+            "timing_offset": -497.2586351568408
+        },
+        {
+            "channel_id": 3813,
+            "timing_offset": -497.6314778667824
+        },
+        {
+            "channel_id": 3814,
+            "timing_offset": -498.57300868773126
+        },
+        {
+            "channel_id": 3815,
+            "timing_offset": -497.99381537187145
+        },
+        {
+            "channel_id": 3816,
+            "timing_offset": -498.78706740416635
+        },
+        {
+            "channel_id": 3817,
+            "timing_offset": -498.7894627484137
+        },
+        {
+            "channel_id": 3818,
+            "timing_offset": -496.8833226568468
+        },
+        {
+            "channel_id": 3900,
+            "timing_offset": -598.1987624586965
+        },
+        {
+            "channel_id": 3901,
+            "timing_offset": -597.8343651032528
+        },
+        {
+            "channel_id": 3902,
+            "timing_offset": -598.5598826762293
+        },
+        {
+            "channel_id": 3903,
+            "timing_offset": -596.4196984341486
+        },
+        {
+            "channel_id": 3904,
+            "timing_offset": -597.1806921970698
+        },
+        {
+            "channel_id": 3905,
+            "timing_offset": -598.2998164603134
+        },
+        {
+            "channel_id": 3906,
+            "timing_offset": -597.1250260190603
+        },
+        {
+            "channel_id": 3908,
+            "timing_offset": -597.9663610654679
+        },
+        {
+            "channel_id": 3909,
+            "timing_offset": -597.4681374456003
+        },
+        {
+            "channel_id": 3910,
+            "timing_offset": -598.4148833269475
+        },
+        {
+            "channel_id": 3911,
+            "timing_offset": -598.5420465722353
+        },
+        {
+            "channel_id": 3912,
+            "timing_offset": -599.6894044933404
+        },
+        {
+            "channel_id": 3913,
+            "timing_offset": -599.4227156517076
+        },
+        {
+            "channel_id": 3914,
+            "timing_offset": -597.5008015279457
+        },
+        {
+            "channel_id": 3915,
+            "timing_offset": -598.0675847817731
+        },
+        {
+            "channel_id": 3916,
+            "timing_offset": -596.67326596557
+        },
+        {
+            "channel_id": 3917,
+            "timing_offset": -597.6971646423741
+        },
+        {
+            "channel_id": 3918,
+            "timing_offset": -597.6387089693629
+        },
+        {
+            "channel_id": 4000,
+            "timing_offset": -508.9476261056276
+        },
+        {
+            "channel_id": 4001,
+            "timing_offset": -506.1198835065312
+        },
+        {
+            "channel_id": 4002,
+            "timing_offset": -506.17243192393113
+        },
+        {
+            "channel_id": 4003,
+            "timing_offset": -508.444903554721
+        },
+        {
+            "channel_id": 4004,
+            "timing_offset": -506.6771934568444
+        },
+        {
+            "channel_id": 4005,
+            "timing_offset": -506.9717030939953
+        },
+        {
+            "channel_id": 4006,
+            "timing_offset": -506.02505499010005
+        },
+        {
+            "channel_id": 4007,
+            "timing_offset": -508.74244160276334
+        },
+        {
+            "channel_id": 4008,
+            "timing_offset": -508.1617624490197
+        },
+        {
+            "channel_id": 4009,
+            "timing_offset": -506.01777869615336
+        },
+        {
+            "channel_id": 4010,
+            "timing_offset": -505.53051359728784
+        },
+        {
+            "channel_id": 4011,
+            "timing_offset": -506.19757544581756
+        },
+        {
+            "channel_id": 4012,
+            "timing_offset": -505.3996831993662
+        },
+        {
+            "channel_id": 4013,
+            "timing_offset": -508.6551861117668
+        },
+        {
+            "channel_id": 4015,
+            "timing_offset": -507.4388252495665
+        },
+        {
+            "channel_id": 4016,
+            "timing_offset": -504.8134386395667
+        },
+        {
+            "channel_id": 4017,
+            "timing_offset": -506.8249250783983
+        },
+        {
+            "channel_id": 4100,
+            "timing_offset": -867.7553943286497
+        },
+        {
+            "channel_id": 4101,
+            "timing_offset": -868.5000396727954
+        },
+        {
+            "channel_id": 4102,
+            "timing_offset": -867.5119734772142
+        },
+        {
+            "channel_id": 4103,
+            "timing_offset": -866.2495576570453
+        },
+        {
+            "channel_id": 4104,
+            "timing_offset": -869.2296628879094
+        },
+        {
+            "channel_id": 4105,
+            "timing_offset": -867.0256441298272
+        },
+        {
+            "channel_id": 4106,
+            "timing_offset": -868.7724078214228
+        },
+        {
+            "channel_id": 4107,
+            "timing_offset": -867.1802514780125
+        },
+        {
+            "channel_id": 4108,
+            "timing_offset": -867.4077338885545
+        },
+        {
+            "channel_id": 4109,
+            "timing_offset": -870.2653777523856
+        },
+        {
+            "channel_id": 4110,
+            "timing_offset": -867.0412192815035
+        },
+        {
+            "channel_id": 4111,
+            "timing_offset": -867.9879254514459
+        },
+        {
+            "channel_id": 4112,
+            "timing_offset": -868.0568116524275
+        },
+        {
+            "channel_id": 4113,
+            "timing_offset": -868.5864671941513
+        },
+        {
+            "channel_id": 4114,
+            "timing_offset": -867.0651904659551
+        },
+        {
+            "channel_id": 4115,
+            "timing_offset": -867.1255955800482
+        },
+        {
+            "channel_id": 4116,
+            "timing_offset": -867.2934521245877
+        },
+        {
+            "channel_id": 4117,
+            "timing_offset": -868.1107855984803
+        },
+        {
+            "channel_id": 4118,
+            "timing_offset": -867.422592201685
+        },
+        {
+            "channel_id": 4300,
+            "timing_offset": 131.61425055322744
+        },
+        {
+            "channel_id": 4301,
+            "timing_offset": 131.32639805966454
+        },
+        {
+            "channel_id": 4302,
+            "timing_offset": 132.85091682903965
+        },
+        {
+            "channel_id": 4303,
+            "timing_offset": 132.92771790098791
+        },
+        {
+            "channel_id": 4304,
+            "timing_offset": 131.864074651526
+        },
+        {
+            "channel_id": 4305,
+            "timing_offset": 132.8128622170029
+        },
+        {
+            "channel_id": 4306,
+            "timing_offset": 130.7296380507638
+        },
+        {
+            "channel_id": 4307,
+            "timing_offset": 132.95371679111952
+        },
+        {
+            "channel_id": 4308,
+            "timing_offset": 133.5318992349564
+        },
+        {
+            "channel_id": 4309,
+            "timing_offset": 133.78708741431927
+        },
+        {
+            "channel_id": 4310,
+            "timing_offset": 132.4950777154859
+        },
+        {
+            "channel_id": 4311,
+            "timing_offset": 133.5105262651309
+        },
+        {
+            "channel_id": 4312,
+            "timing_offset": 131.79064245419866
+        },
+        {
+            "channel_id": 4313,
+            "timing_offset": 132.5634934906505
+        },
+        {
+            "channel_id": 4314,
+            "timing_offset": 131.973811018274
+        },
+        {
+            "channel_id": 4315,
+            "timing_offset": 133.19418685433925
+        },
+        {
+            "channel_id": 4316,
+            "timing_offset": 132.54074480636964
+        },
+        {
+            "channel_id": 4317,
+            "timing_offset": 132.1751290976289
+        },
+        {
+            "channel_id": 4318,
+            "timing_offset": 133.0780658423042
+        },
+        {
+            "channel_id": 4400,
+            "timing_offset": 365.3028810395953
+        },
+        {
+            "channel_id": 4401,
+            "timing_offset": 365.00429142572233
+        },
+        {
+            "channel_id": 4402,
+            "timing_offset": 363.4524946320482
+        },
+        {
+            "channel_id": 4403,
+            "timing_offset": 364.1877692444418
+        },
+        {
+            "channel_id": 4404,
+            "timing_offset": 364.6909117298671
+        },
+        {
+            "channel_id": 4405,
+            "timing_offset": 365.3947541193781
+        },
+        {
+            "channel_id": 4406,
+            "timing_offset": 365.09141701809904
+        },
+        {
+            "channel_id": 4407,
+            "timing_offset": 365.0068497306487
+        },
+        {
+            "channel_id": 4408,
+            "timing_offset": 365.1516409797536
+        },
+        {
+            "channel_id": 4409,
+            "timing_offset": 365.3979017679633
+        },
+        {
+            "channel_id": 4410,
+            "timing_offset": 364.03559796690996
+        },
+        {
+            "channel_id": 4411,
+            "timing_offset": 364.4560850401237
+        },
+        {
+            "channel_id": 4412,
+            "timing_offset": 364.78022466176964
+        },
+        {
+            "channel_id": 4413,
+            "timing_offset": 365.5296101695358
+        },
+        {
+            "channel_id": 4414,
+            "timing_offset": 364.0102533676353
+        },
+        {
+            "channel_id": 4415,
+            "timing_offset": 365.07556788361114
+        },
+        {
+            "channel_id": 4416,
+            "timing_offset": 364.56161448818864
+        },
+        {
+            "channel_id": 4417,
+            "timing_offset": 364.94649371880195
+        },
+        {
+            "channel_id": 4418,
+            "timing_offset": 364.7503502690411
+        },
+        {
+            "channel_id": 4600,
+            "timing_offset": 4.540920699436928
+        },
+        {
+            "channel_id": 4601,
+            "timing_offset": 5.206739327156915
+        },
+        {
+            "channel_id": 4602,
+            "timing_offset": 5.1506558962122675
+        },
+        {
+            "channel_id": 4603,
+            "timing_offset": 4.162469307221095
+        },
+        {
+            "channel_id": 4604,
+            "timing_offset": 5.13119107767832
+        },
+        {
+            "channel_id": 4605,
+            "timing_offset": 4.737402230300169
+        },
+        {
+            "channel_id": 4606,
+            "timing_offset": 5.194551948126959
+        },
+        {
+            "channel_id": 4608,
+            "timing_offset": 4.89123807525466
+        },
+        {
+            "channel_id": 4609,
+            "timing_offset": 5.161886114432032
+        },
+        {
+            "channel_id": 4610,
+            "timing_offset": 5.060164850907175
+        },
+        {
+            "channel_id": 4612,
+            "timing_offset": 3.249531610409888
+        },
+        {
+            "channel_id": 4615,
+            "timing_offset": 5.677900626646278
+        },
+        {
+            "channel_id": 4616,
+            "timing_offset": 3.0593019447656786
+        },
+        {
+            "channel_id": 4618,
+            "timing_offset": 5.784783647198662
+        },
+        {
+            "channel_id": 4700,
+            "timing_offset": 362.52868598863466
+        },
+        {
+            "channel_id": 4701,
+            "timing_offset": 362.75282951981256
+        },
+        {
+            "channel_id": 4702,
+            "timing_offset": 363.05961613071315
+        },
+        {
+            "channel_id": 4703,
+            "timing_offset": 363.2062739363357
+        },
+        {
+            "channel_id": 4704,
+            "timing_offset": 363.18490850326845
+        },
+        {
+            "channel_id": 4705,
+            "timing_offset": 364.48938206853524
+        },
+        {
+            "channel_id": 4706,
+            "timing_offset": 364.1354767283658
+        },
+        {
+            "channel_id": 4707,
+            "timing_offset": 363.29804547249853
+        },
+        {
+            "channel_id": 4708,
+            "timing_offset": 363.22612346633446
+        },
+        {
+            "channel_id": 4709,
+            "timing_offset": 363.16268678036056
+        },
+        {
+            "channel_id": 4710,
+            "timing_offset": 364.0036860410449
+        },
+        {
+            "channel_id": 4711,
+            "timing_offset": 362.74329790217956
+        },
+        {
+            "channel_id": 4712,
+            "timing_offset": 363.20043230068995
+        },
+        {
+            "channel_id": 4713,
+            "timing_offset": 363.0666167424325
+        },
+        {
+            "channel_id": 4715,
+            "timing_offset": 364.83034088802225
+        },
+        {
+            "channel_id": 4716,
+            "timing_offset": 363.09013286477983
+        },
+        {
+            "channel_id": 4717,
+            "timing_offset": 364.0415721382632
+        },
+        {
+            "channel_id": 4718,
+            "timing_offset": 363.43757009719286
+        },
+        {
+            "channel_id": 4900,
+            "timing_offset": 0.48311220595183324
+        },
+        {
+            "channel_id": 4901,
+            "timing_offset": 0.551843464496017
+        },
+        {
+            "channel_id": 4902,
+            "timing_offset": 1.007655303694685
+        },
+        {
+            "channel_id": 4903,
+            "timing_offset": 0.9933486835814803
+        },
+        {
+            "channel_id": 4904,
+            "timing_offset": -1.4153863001768594
+        },
+        {
+            "channel_id": 4905,
+            "timing_offset": -0.9413030343707033
+        },
+        {
+            "channel_id": 4906,
+            "timing_offset": 0.6349728640696304
+        },
+        {
+            "channel_id": 4907,
+            "timing_offset": -0.35450326311247693
+        },
+        {
+            "channel_id": 4908,
+            "timing_offset": -0.06898239971426355
+        },
+        {
+            "channel_id": 4909,
+            "timing_offset": -0.4472363426768425
+        },
+        {
+            "channel_id": 4910,
+            "timing_offset": -0.12516789783972043
+        },
+        {
+            "channel_id": 4911,
+            "timing_offset": 0.7515253296168253
+        },
+        {
+            "channel_id": 4912,
+            "timing_offset": -0.36663038026817124
+        },
+        {
+            "channel_id": 4913,
+            "timing_offset": -0.14774737868565227
+        },
+        {
+            "channel_id": 4914,
+            "timing_offset": -0.8225257348280792
+        },
+        {
+            "channel_id": 4915,
+            "timing_offset": -0.2797633839519029
+        },
+        {
+            "channel_id": 4916,
+            "timing_offset": -0.07579322834034717
+        },
+        {
+            "channel_id": 4917,
+            "timing_offset": 0.6712543709939034
+        },
+        {
+            "channel_id": 4918,
+            "timing_offset": -0.05002631708600633
+        },
+        {
+            "channel_id": 5000,
+            "timing_offset": -273.5372937430536
+        },
+        {
+            "channel_id": 5001,
+            "timing_offset": -273.82443955391994
+        },
+        {
+            "channel_id": 5002,
+            "timing_offset": -275.3218154409706
+        },
+        {
+            "channel_id": 5003,
+            "timing_offset": -276.7857091751873
+        },
+        {
+            "channel_id": 5004,
+            "timing_offset": -275.4812442936078
+        },
+        {
+            "channel_id": 5005,
+            "timing_offset": -276.2943353005463
+        },
+        {
+            "channel_id": 5006,
+            "timing_offset": -276.5905707353454
+        },
+        {
+            "channel_id": 5007,
+            "timing_offset": -276.31080749463183
+        },
+        {
+            "channel_id": 5008,
+            "timing_offset": -275.22430270000893
+        },
+        {
+            "channel_id": 5009,
+            "timing_offset": -274.1300782284209
+        },
+        {
+            "channel_id": 5010,
+            "timing_offset": -276.3582925920246
+        },
+        {
+            "channel_id": 5011,
+            "timing_offset": -275.5913915498874
+        },
+        {
+            "channel_id": 5012,
+            "timing_offset": -275.21498752731037
+        },
+        {
+            "channel_id": 5013,
+            "timing_offset": -275.4868316986567
+        },
+        {
+            "channel_id": 5014,
+            "timing_offset": -275.8161384759804
+        },
+        {
+            "channel_id": 5015,
+            "timing_offset": -275.9443331678685
+        },
+        {
+            "channel_id": 5016,
+            "timing_offset": -275.51844269346907
+        },
+        {
+            "channel_id": 5017,
+            "timing_offset": -274.8267240284484
+        },
+        {
+            "channel_id": 5018,
+            "timing_offset": -275.80877696694114
+        },
+        {
+            "channel_id": 5100,
+            "timing_offset": -882.7693353252997
+        },
+        {
+            "channel_id": 5101,
+            "timing_offset": -882.9743589245929
+        },
+        {
+            "channel_id": 5102,
+            "timing_offset": -881.1995516049421
+        },
+        {
+            "channel_id": 5103,
+            "timing_offset": -882.5075870140848
+        },
+        {
+            "channel_id": 5104,
+            "timing_offset": -881.7721073607729
+        },
+        {
+            "channel_id": 5105,
+            "timing_offset": -882.1787606682999
+        },
+        {
+            "channel_id": 5106,
+            "timing_offset": -882.1987558763873
+        },
+        {
+            "channel_id": 5107,
+            "timing_offset": -883.1457695479207
+        },
+        {
+            "channel_id": 5108,
+            "timing_offset": -882.5594151175341
+        },
+        {
+            "channel_id": 5109,
+            "timing_offset": -881.4076838606978
+        },
+        {
+            "channel_id": 5110,
+            "timing_offset": -882.4552142428249
+        },
+        {
+            "channel_id": 5111,
+            "timing_offset": -882.4514556863301
+        },
+        {
+            "channel_id": 5112,
+            "timing_offset": -882.7646114598157
+        },
+        {
+            "channel_id": 5113,
+            "timing_offset": -881.7999190691237
+        },
+        {
+            "channel_id": 5114,
+            "timing_offset": -884.1666694446423
+        },
+        {
+            "channel_id": 5115,
+            "timing_offset": -882.512762564089
+        },
+        {
+            "channel_id": 5116,
+            "timing_offset": -881.7921447392035
+        },
+        {
+            "channel_id": 5117,
+            "timing_offset": -882.5970306810107
+        },
+        {
+            "channel_id": 5118,
+            "timing_offset": -882.8568753658927
+        },
+        {
+            "channel_id": 5200,
+            "timing_offset": -418.4174946679268
+        },
+        {
+            "channel_id": 5201,
+            "timing_offset": -418.8387165461142
+        },
+        {
+            "channel_id": 5202,
+            "timing_offset": -418.05586056737405
+        },
+        {
+            "channel_id": 5203,
+            "timing_offset": -419.2842771347945
+        },
+        {
+            "channel_id": 5204,
+            "timing_offset": -419.0761415900191
+        },
+        {
+            "channel_id": 5205,
+            "timing_offset": -418.2335163981536
+        },
+        {
+            "channel_id": 5206,
+            "timing_offset": -418.8690414970857
+        },
+        {
+            "channel_id": 5207,
+            "timing_offset": -418.6361077439492
+        },
+        {
+            "channel_id": 5208,
+            "timing_offset": -417.8530497363582
+        },
+        {
+            "channel_id": 5209,
+            "timing_offset": -417.1023302096055
+        },
+        {
+            "channel_id": 5210,
+            "timing_offset": -417.88584102880196
+        },
+        {
+            "channel_id": 5211,
+            "timing_offset": -418.56398053468683
+        },
+        {
+            "channel_id": 5212,
+            "timing_offset": -421.32106305310725
+        },
+        {
+            "channel_id": 5213,
+            "timing_offset": -419.0282235399388
+        },
+        {
+            "channel_id": 5214,
+            "timing_offset": -418.5899279539753
+        },
+        {
+            "channel_id": 5215,
+            "timing_offset": -417.4864308509131
+        },
+        {
+            "channel_id": 5216,
+            "timing_offset": -419.1264958086005
+        },
+        {
+            "channel_id": 5217,
+            "timing_offset": -419.3796524320989
+        },
+        {
+            "channel_id": 5218,
+            "timing_offset": -418.72463637969054
+        },
+        {
+            "channel_id": 5300,
+            "timing_offset": -114.5710183643024
+        },
+        {
+            "channel_id": 5301,
+            "timing_offset": -115.04416615685324
+        },
+        {
+            "channel_id": 5302,
+            "timing_offset": -112.86787836688487
+        },
+        {
+            "channel_id": 5303,
+            "timing_offset": -112.90752655856546
+        },
+        {
+            "channel_id": 5304,
+            "timing_offset": -113.1811710381258
+        },
+        {
+            "channel_id": 5305,
+            "timing_offset": -114.59316444871024
+        },
+        {
+            "channel_id": 5306,
+            "timing_offset": -113.12509725126216
+        },
+        {
+            "channel_id": 5307,
+            "timing_offset": -113.50676780047641
+        },
+        {
+            "channel_id": 5308,
+            "timing_offset": -114.46071806617748
+        },
+        {
+            "channel_id": 5309,
+            "timing_offset": -113.12282159405825
+        },
+        {
+            "channel_id": 5310,
+            "timing_offset": -114.26077335624426
+        },
+        {
+            "channel_id": 5311,
+            "timing_offset": -113.57513128440624
+        },
+        {
+            "channel_id": 5313,
+            "timing_offset": -114.6477046586818
+        },
+        {
+            "channel_id": 5314,
+            "timing_offset": -113.13703546191043
+        },
+        {
+            "channel_id": 5315,
+            "timing_offset": -113.63871940841658
+        },
+        {
+            "channel_id": 5316,
+            "timing_offset": -113.95471764285273
+        },
+        {
+            "channel_id": 5317,
+            "timing_offset": -113.32667312072175
+        },
+        {
+            "channel_id": 5318,
+            "timing_offset": -113.48949766922303
+        },
+        {
+            "channel_id": 5400,
+            "timing_offset": -499.79383987571396
+        },
+        {
+            "channel_id": 5401,
+            "timing_offset": -499.68914628963125
+        },
+        {
+            "channel_id": 5402,
+            "timing_offset": -498.9761118643794
+        },
+        {
+            "channel_id": 5403,
+            "timing_offset": -498.5772395596939
+        },
+        {
+            "channel_id": 5404,
+            "timing_offset": -499.0647735469798
+        },
+        {
+            "channel_id": 5405,
+            "timing_offset": -501.30237376344803
+        },
+        {
+            "channel_id": 5406,
+            "timing_offset": -502.2575771745893
+        },
+        {
+            "channel_id": 5407,
+            "timing_offset": -499.48898923254967
+        },
+        {
+            "channel_id": 5408,
+            "timing_offset": -499.3552815899866
+        },
+        {
+            "channel_id": 5409,
+            "timing_offset": -498.8457769963859
+        },
+        {
+            "channel_id": 5410,
+            "timing_offset": -498.7451316921149
+        },
+        {
+            "channel_id": 5411,
+            "timing_offset": -498.0012845981395
+        },
+        {
+            "channel_id": 5412,
+            "timing_offset": -501.693311519455
+        },
+        {
+            "channel_id": 5413,
+            "timing_offset": -500.3818330588429
+        },
+        {
+            "channel_id": 5414,
+            "timing_offset": -500.31894045642133
+        },
+        {
+            "channel_id": 5415,
+            "timing_offset": -501.150230923928
+        },
+        {
+            "channel_id": 5416,
+            "timing_offset": -500.65844151902235
+        },
+        {
+            "channel_id": 5417,
+            "timing_offset": -500.0786854453831
+        },
+        {
+            "channel_id": 5418,
+            "timing_offset": -499.3887105752067
+        },
+        {
+            "channel_id": 5500,
+            "timing_offset": -597.105352315224
+        },
+        {
+            "channel_id": 5501,
+            "timing_offset": -596.639875315763
+        },
+        {
+            "channel_id": 5502,
+            "timing_offset": -598.5219293062991
+        },
+        {
+            "channel_id": 5503,
+            "timing_offset": -597.8731717228401
+        },
+        {
+            "channel_id": 5504,
+            "timing_offset": -597.8849693041295
+        },
+        {
+            "channel_id": 5505,
+            "timing_offset": -597.070149536993
+        },
+        {
+            "channel_id": 5506,
+            "timing_offset": -597.7102977645259
+        },
+        {
+            "channel_id": 5507,
+            "timing_offset": -598.9600818114253
+        },
+        {
+            "channel_id": 5508,
+            "timing_offset": -597.5558479783356
+        },
+        {
+            "channel_id": 5509,
+            "timing_offset": -596.4138248244652
+        },
+        {
+            "channel_id": 5510,
+            "timing_offset": -596.3434671120913
+        },
+        {
+            "channel_id": 5511,
+            "timing_offset": -598.295276139443
+        },
+        {
+            "channel_id": 5512,
+            "timing_offset": -597.5826625853246
+        },
+        {
+            "channel_id": 5513,
+            "timing_offset": -597.2068489326053
+        },
+        {
+            "channel_id": 5514,
+            "timing_offset": -598.3712982252977
+        },
+        {
+            "channel_id": 5515,
+            "timing_offset": -597.1215317482817
+        },
+        {
+            "channel_id": 5516,
+            "timing_offset": -596.4887099091537
+        },
+        {
+            "channel_id": 5517,
+            "timing_offset": -597.5698736165368
+        },
+        {
+            "channel_id": 5518,
+            "timing_offset": -597.0543231497174
+        },
+        {
+            "channel_id": 5600,
+            "timing_offset": -600.4236239290481
+        },
+        {
+            "channel_id": 5601,
+            "timing_offset": -599.9150054853333
+        },
+        {
+            "channel_id": 5602,
+            "timing_offset": -601.2317650648963
+        },
+        {
+            "channel_id": 5603,
+            "timing_offset": -598.2375924543467
+        },
+        {
+            "channel_id": 5604,
+            "timing_offset": -600.9521621187652
+        },
+        {
+            "channel_id": 5605,
+            "timing_offset": -599.7243542606861
+        },
+        {
+            "channel_id": 5606,
+            "timing_offset": -601.5026950771661
+        },
+        {
+            "channel_id": 5607,
+            "timing_offset": -599.3315959284075
+        },
+        {
+            "channel_id": 5608,
+            "timing_offset": -601.2077450285386
+        },
+        {
+            "channel_id": 5609,
+            "timing_offset": -601.0024632909891
+        },
+        {
+            "channel_id": 5610,
+            "timing_offset": -600.8417869576025
+        },
+        {
+            "channel_id": 5611,
+            "timing_offset": -601.0063233042466
+        },
+        {
+            "channel_id": 5612,
+            "timing_offset": -600.6954376215058
+        },
+        {
+            "channel_id": 5613,
+            "timing_offset": -600.6259959012117
+        },
+        {
+            "channel_id": 5614,
+            "timing_offset": -600.3100491146641
+        },
+        {
+            "channel_id": 5615,
+            "timing_offset": -599.2178345421537
+        },
+        {
+            "channel_id": 5616,
+            "timing_offset": -599.0709976905905
+        },
+        {
+            "channel_id": 5617,
+            "timing_offset": -600.3258244674379
+        },
+        {
+            "channel_id": 5618,
+            "timing_offset": -599.8192859504708
+        },
+        {
+            "channel_id": 5700,
+            "timing_offset": -501.0847431814827
+        },
+        {
+            "channel_id": 5701,
+            "timing_offset": -499.6329365215148
+        },
+        {
+            "channel_id": 5702,
+            "timing_offset": -499.3553539602615
+        },
+        {
+            "channel_id": 5703,
+            "timing_offset": -501.5584968061133
+        },
+        {
+            "channel_id": 5704,
+            "timing_offset": -498.13669039523194
+        },
+        {
+            "channel_id": 5705,
+            "timing_offset": -499.84710260485014
+        },
+        {
+            "channel_id": 5706,
+            "timing_offset": -498.54823010023864
+        },
+        {
+            "channel_id": 5707,
+            "timing_offset": -499.9283782558352
+        },
+        {
+            "channel_id": 5708,
+            "timing_offset": -500.1057786315787
+        },
+        {
+            "channel_id": 5709,
+            "timing_offset": -499.93537494483934
+        },
+        {
+            "channel_id": 5710,
+            "timing_offset": -500.10528469139746
+        },
+        {
+            "channel_id": 5711,
+            "timing_offset": -499.148259867282
+        },
+        {
+            "channel_id": 5712,
+            "timing_offset": -498.68319313132287
+        },
+        {
+            "channel_id": 5713,
+            "timing_offset": -499.48607322878144
+        },
+        {
+            "channel_id": 5714,
+            "timing_offset": -498.188395790446
+        },
+        {
+            "channel_id": 5715,
+            "timing_offset": -498.8940146397784
+        },
+        {
+            "channel_id": 5717,
+            "timing_offset": -500.6997360403246
+        },
+        {
+            "channel_id": 5718,
+            "timing_offset": -498.75555735596083
+        },
+        {
+            "channel_id": 5800,
+            "timing_offset": 372.2993840436419
+        },
+        {
+            "channel_id": 5801,
+            "timing_offset": 373.4172637902508
+        },
+        {
+            "channel_id": 5802,
+            "timing_offset": 372.9358016092175
+        },
+        {
+            "channel_id": 5803,
+            "timing_offset": 372.7009297056727
+        },
+        {
+            "channel_id": 5804,
+            "timing_offset": 373.09143819098256
+        },
+        {
+            "channel_id": 5805,
+            "timing_offset": 372.04281921586653
+        },
+        {
+            "channel_id": 5806,
+            "timing_offset": 372.4113668739985
+        },
+        {
+            "channel_id": 5807,
+            "timing_offset": 373.2881549340333
+        },
+        {
+            "channel_id": 5808,
+            "timing_offset": 373.013028309235
+        },
+        {
+            "channel_id": 5809,
+            "timing_offset": 372.4520175689104
+        },
+        {
+            "channel_id": 5810,
+            "timing_offset": 373.065183352355
+        },
+        {
+            "channel_id": 5813,
+            "timing_offset": 373.4264390338095
+        },
+        {
+            "channel_id": 5814,
+            "timing_offset": 371.64772885703246
+        },
+        {
+            "channel_id": 5816,
+            "timing_offset": 374.5290155043886
+        },
+        {
+            "channel_id": 5817,
+            "timing_offset": 371.5265790493047
+        },
+        {
+            "channel_id": 5818,
+            "timing_offset": 373.53086987503605
+        },
+        {
+            "channel_id": 6000,
+            "timing_offset": 130.7926671157196
+        },
+        {
+            "channel_id": 6001,
+            "timing_offset": 130.97330741009594
+        },
+        {
+            "channel_id": 6002,
+            "timing_offset": 130.4556063409343
+        },
+        {
+            "channel_id": 6003,
+            "timing_offset": 131.11061781497628
+        },
+        {
+            "channel_id": 6004,
+            "timing_offset": 130.99068301577563
+        },
+        {
+            "channel_id": 6005,
+            "timing_offset": 132.35394799447107
+        },
+        {
+            "channel_id": 6006,
+            "timing_offset": 131.27490680898444
+        },
+        {
+            "channel_id": 6007,
+            "timing_offset": 129.74796732399233
+        },
+        {
+            "channel_id": 6008,
+            "timing_offset": 131.11577077001633
+        },
+        {
+            "channel_id": 6009,
+            "timing_offset": 131.30573434522415
+        },
+        {
+            "channel_id": 6010,
+            "timing_offset": 130.1585214581213
+        },
+        {
+            "channel_id": 6011,
+            "timing_offset": 130.18622673756408
+        },
+        {
+            "channel_id": 6012,
+            "timing_offset": 131.36279286823068
+        },
+        {
+            "channel_id": 6013,
+            "timing_offset": 130.483370482021
+        },
+        {
+            "channel_id": 6014,
+            "timing_offset": 132.07907415514316
+        },
+        {
+            "channel_id": 6015,
+            "timing_offset": 130.7174782238844
+        },
+        {
+            "channel_id": 6016,
+            "timing_offset": 130.6710509604266
+        },
+        {
+            "channel_id": 6017,
+            "timing_offset": 131.49010496045545
+        },
+        {
+            "channel_id": 6018,
+            "timing_offset": 130.97605426852172
+        },
+        {
+            "channel_id": 6100,
+            "timing_offset": 10.77561745363583
+        },
+        {
+            "channel_id": 6101,
+            "timing_offset": 11.390809476537724
+        },
+        {
+            "channel_id": 6102,
+            "timing_offset": 11.889925970962464
+        },
+        {
+            "channel_id": 6103,
+            "timing_offset": 11.846084080715919
+        },
+        {
+            "channel_id": 6104,
+            "timing_offset": 10.975008701375007
+        },
+        {
+            "channel_id": 6105,
+            "timing_offset": 11.908092512682181
+        },
+        {
+            "channel_id": 6106,
+            "timing_offset": 9.901952181082763
+        },
+        {
+            "channel_id": 6107,
+            "timing_offset": 10.591432214734926
+        },
+        {
+            "channel_id": 6108,
+            "timing_offset": 11.566772108379038
+        },
+        {
+            "channel_id": 6109,
+            "timing_offset": 9.57494016759599
+        },
+        {
+            "channel_id": 6110,
+            "timing_offset": 10.57896087923116
+        },
+        {
+            "channel_id": 6111,
+            "timing_offset": 11.673492221073468
+        },
+        {
+            "channel_id": 6113,
+            "timing_offset": 11.877226513834124
+        },
+        {
+            "channel_id": 6114,
+            "timing_offset": 11.162616972454844
+        },
+        {
+            "channel_id": 6115,
+            "timing_offset": 11.417821435272893
+        },
+        {
+            "channel_id": 6116,
+            "timing_offset": 11.545028276531797
+        },
+        {
+            "channel_id": 6117,
+            "timing_offset": 10.533695799860924
+        },
+        {
+            "channel_id": 6118,
+            "timing_offset": 11.59009667937806
+        },
+        {
+            "channel_id": 6200,
+            "timing_offset": 260.1240635375485
+        },
+        {
+            "channel_id": 6201,
+            "timing_offset": 260.6002944848517
+        },
+        {
+            "channel_id": 6202,
+            "timing_offset": 261.8073852214779
+        },
+        {
+            "channel_id": 6203,
+            "timing_offset": 261.74582108797466
+        },
+        {
+            "channel_id": 6204,
+            "timing_offset": 261.511919569928
+        },
+        {
+            "channel_id": 6205,
+            "timing_offset": 260.35041471815146
+        },
+        {
+            "channel_id": 6206,
+            "timing_offset": 261.8909006503312
+        },
+        {
+            "channel_id": 6207,
+            "timing_offset": 261.09207704854254
+        },
+        {
+            "channel_id": 6208,
+            "timing_offset": 261.6857632452438
+        },
+        {
+            "channel_id": 6209,
+            "timing_offset": 260.2051525622027
+        },
+        {
+            "channel_id": 6210,
+            "timing_offset": 260.7256412619841
+        },
+        {
+            "channel_id": 6211,
+            "timing_offset": 262.27035670001175
+        },
+        {
+            "channel_id": 6212,
+            "timing_offset": 261.2411159446567
+        },
+        {
+            "channel_id": 6213,
+            "timing_offset": 261.7878775717916
+        },
+        {
+            "channel_id": 6214,
+            "timing_offset": 261.087442344193
+        },
+        {
+            "channel_id": 6215,
+            "timing_offset": 260.41754783379093
+        },
+        {
+            "channel_id": 6216,
+            "timing_offset": 261.3758595897391
+        },
+        {
+            "channel_id": 6217,
+            "timing_offset": 261.4724848134833
+        },
+        {
+            "channel_id": 6218,
+            "timing_offset": 261.9291671221651
+        },
+        {
+            "channel_id": 6400,
+            "timing_offset": -89.17450968020667
+        },
+        {
+            "channel_id": 6401,
+            "timing_offset": -91.08738007844991
+        },
+        {
+            "channel_id": 6402,
+            "timing_offset": -90.97294644311361
+        },
+        {
+            "channel_id": 6403,
+            "timing_offset": -90.95735883073817
+        },
+        {
+            "channel_id": 6404,
+            "timing_offset": -90.69375291061709
+        },
+        {
+            "channel_id": 6405,
+            "timing_offset": -90.07040008191854
+        },
+        {
+            "channel_id": 6406,
+            "timing_offset": -91.2501191272146
+        },
+        {
+            "channel_id": 6407,
+            "timing_offset": -89.62072166077931
+        },
+        {
+            "channel_id": 6408,
+            "timing_offset": -92.48508100945
+        },
+        {
+            "channel_id": 6409,
+            "timing_offset": -90.55359250797005
+        },
+        {
+            "channel_id": 6410,
+            "timing_offset": -90.2242873852746
+        },
+        {
+            "channel_id": 6411,
+            "timing_offset": -91.06104947463865
+        },
+        {
+            "channel_id": 6412,
+            "timing_offset": -89.85998182226089
+        },
+        {
+            "channel_id": 6413,
+            "timing_offset": -91.42833054545629
+        },
+        {
+            "channel_id": 6414,
+            "timing_offset": -92.38502107821576
+        },
+        {
+            "channel_id": 6415,
+            "timing_offset": -90.78804012294076
+        },
+        {
+            "channel_id": 6416,
+            "timing_offset": -90.6855304957378
+        },
+        {
+            "channel_id": 6417,
+            "timing_offset": -90.24133274304789
+        },
+        {
+            "channel_id": 6418,
+            "timing_offset": -88.97402527892018
+        },
+        {
+            "channel_id": 6500,
+            "timing_offset": -732.4643596946571
+        },
+        {
+            "channel_id": 6501,
+            "timing_offset": -732.8297201635851
+        },
+        {
+            "channel_id": 6503,
+            "timing_offset": -732.9450485879379
+        },
+        {
+            "channel_id": 6504,
+            "timing_offset": -734.4800207318144
+        },
+        {
+            "channel_id": 6505,
+            "timing_offset": -733.0464472415889
+        },
+        {
+            "channel_id": 6506,
+            "timing_offset": -734.4782783988553
+        },
+        {
+            "channel_id": 6507,
+            "timing_offset": -732.7083587551224
+        },
+        {
+            "channel_id": 6509,
+            "timing_offset": -732.3504442595082
+        },
+        {
+            "channel_id": 6511,
+            "timing_offset": -733.8028127253795
+        },
+        {
+            "channel_id": 6513,
+            "timing_offset": -734.7497515952775
+        },
+        {
+            "channel_id": 6514,
+            "timing_offset": -733.6110691568217
+        },
+        {
+            "channel_id": 6516,
+            "timing_offset": -733.5376091574786
+        },
+        {
+            "channel_id": 6517,
+            "timing_offset": -733.2150042141782
+        },
+        {
+            "channel_id": 6600,
+            "timing_offset": 465.7557910064344
+        },
+        {
+            "channel_id": 6601,
+            "timing_offset": 466.75692962370874
+        },
+        {
+            "channel_id": 6602,
+            "timing_offset": 465.40131677627426
+        },
+        {
+            "channel_id": 6603,
+            "timing_offset": 465.58398958598383
+        },
+        {
+            "channel_id": 6605,
+            "timing_offset": 466.31716922950295
+        },
+        {
+            "channel_id": 6606,
+            "timing_offset": 467.0185941763202
+        },
+        {
+            "channel_id": 6607,
+            "timing_offset": 466.56401074040093
+        },
+        {
+            "channel_id": 6608,
+            "timing_offset": 466.47873205008733
+        },
+        {
+            "channel_id": 6609,
+            "timing_offset": 465.3766394261327
+        },
+        {
+            "channel_id": 6611,
+            "timing_offset": 467.1565226034875
+        },
+        {
+            "channel_id": 6613,
+            "timing_offset": 465.47720270897867
+        },
+        {
+            "channel_id": 6614,
+            "timing_offset": 466.6085185896074
+        },
+        {
+            "channel_id": 6615,
+            "timing_offset": 466.0004564524018
+        },
+        {
+            "channel_id": 6616,
+            "timing_offset": 465.8154855316874
+        },
+        {
+            "channel_id": 6617,
+            "timing_offset": 467.413407844383
+        },
+        {
+            "channel_id": 6800,
+            "timing_offset": 103.42917704202124
+        },
+        {
+            "channel_id": 6801,
+            "timing_offset": 103.51108029313335
+        },
+        {
+            "channel_id": 6802,
+            "timing_offset": 104.44781082732766
+        },
+        {
+            "channel_id": 6803,
+            "timing_offset": 104.77165715106447
+        },
+        {
+            "channel_id": 6804,
+            "timing_offset": 103.91385192281908
+        },
+        {
+            "channel_id": 6805,
+            "timing_offset": 104.70376015475559
+        },
+        {
+            "channel_id": 6806,
+            "timing_offset": 104.11442822010835
+        },
+        {
+            "channel_id": 6807,
+            "timing_offset": 102.02813013146763
+        },
+        {
+            "channel_id": 6808,
+            "timing_offset": 103.10804405713591
+        },
+        {
+            "channel_id": 6809,
+            "timing_offset": 102.39314438768834
+        },
+        {
+            "channel_id": 6810,
+            "timing_offset": 103.09711507580327
+        },
+        {
+            "channel_id": 6811,
+            "timing_offset": 102.73041576018115
+        },
+        {
+            "channel_id": 6812,
+            "timing_offset": 102.9924671006775
+        },
+        {
+            "channel_id": 6813,
+            "timing_offset": 105.70789052725738
+        },
+        {
+            "channel_id": 6814,
+            "timing_offset": 104.05229100731944
+        },
+        {
+            "channel_id": 6815,
+            "timing_offset": 103.3652135008386
+        },
+        {
+            "channel_id": 6816,
+            "timing_offset": 103.71530655365251
+        },
+        {
+            "channel_id": 6817,
+            "timing_offset": 102.1443303492907
+        },
+        {
+            "channel_id": 6900,
+            "timing_offset": -752.938372607484
+        },
+        {
+            "channel_id": 6901,
+            "timing_offset": -751.1682808811074
+        },
+        {
+            "channel_id": 6902,
+            "timing_offset": -752.3978336199741
+        },
+        {
+            "channel_id": 6903,
+            "timing_offset": -753.4434101855804
+        },
+        {
+            "channel_id": 6904,
+            "timing_offset": -752.3499796097767
+        },
+        {
+            "channel_id": 6905,
+            "timing_offset": -752.7280080432654
+        },
+        {
+            "channel_id": 6906,
+            "timing_offset": -752.0526550081428
+        },
+        {
+            "channel_id": 6907,
+            "timing_offset": -754.033861998603
+        },
+        {
+            "channel_id": 6908,
+            "timing_offset": -753.3761863656791
+        },
+        {
+            "channel_id": 6910,
+            "timing_offset": -753.300239541064
+        },
+        {
+            "channel_id": 6912,
+            "timing_offset": -753.1152927759672
+        },
+        {
+            "channel_id": 6913,
+            "timing_offset": -753.0612509496926
+        },
+        {
+            "channel_id": 6914,
+            "timing_offset": -753.5593312080213
+        },
+        {
+            "channel_id": 6915,
+            "timing_offset": -753.4958200214609
+        },
+        {
+            "channel_id": 6916,
+            "timing_offset": -754.4097410161239
+        },
+        {
+            "channel_id": 6917,
+            "timing_offset": -753.7617302007333
+        },
+        {
+            "channel_id": 6918,
+            "timing_offset": -752.7904018948848
+        },
+        {
+            "channel_id": 7000,
+            "timing_offset": -857.5695621674499
+        },
+        {
+            "channel_id": 7001,
+            "timing_offset": -859.8161343675743
+        },
+        {
+            "channel_id": 7002,
+            "timing_offset": -859.5981363187443
+        },
+        {
+            "channel_id": 7003,
+            "timing_offset": -858.8229494207427
+        },
+        {
+            "channel_id": 7004,
+            "timing_offset": -857.8737461551739
+        },
+        {
+            "channel_id": 7005,
+            "timing_offset": -858.9008990121162
+        },
+        {
+            "channel_id": 7006,
+            "timing_offset": -857.3972053715725
+        },
+        {
+            "channel_id": 7007,
+            "timing_offset": -858.726280542864
+        },
+        {
+            "channel_id": 7008,
+            "timing_offset": -858.3101164112921
+        },
+        {
+            "channel_id": 7009,
+            "timing_offset": -859.237117711028
+        },
+        {
+            "channel_id": 7010,
+            "timing_offset": -858.3970069400268
+        },
+        {
+            "channel_id": 7011,
+            "timing_offset": -857.7470866712841
+        },
+        {
+            "channel_id": 7013,
+            "timing_offset": -857.9087297575544
+        },
+        {
+            "channel_id": 7014,
+            "timing_offset": -860.2241271166994
+        },
+        {
+            "channel_id": 7015,
+            "timing_offset": -859.008935742741
+        },
+        {
+            "channel_id": 7016,
+            "timing_offset": -858.505347195635
+        },
+        {
+            "channel_id": 7017,
+            "timing_offset": -860.7074219791707
+        },
+        {
+            "channel_id": 7018,
+            "timing_offset": -857.0097464683245
+        },
+        {
+            "channel_id": 7100,
+            "timing_offset": -854.6784296130768
+        },
+        {
+            "channel_id": 7101,
+            "timing_offset": -854.9022040756688
+        },
+        {
+            "channel_id": 7102,
+            "timing_offset": -853.9615159550585
+        },
+        {
+            "channel_id": 7103,
+            "timing_offset": -854.6021695066569
+        },
+        {
+            "channel_id": 7104,
+            "timing_offset": -854.5063078008274
+        },
+        {
+            "channel_id": 7105,
+            "timing_offset": -855.3250298308451
+        },
+        {
+            "channel_id": 7106,
+            "timing_offset": -853.922378418513
+        },
+        {
+            "channel_id": 7107,
+            "timing_offset": -854.5632365449237
+        },
+        {
+            "channel_id": 7108,
+            "timing_offset": -853.9328357558364
+        },
+        {
+            "channel_id": 7109,
+            "timing_offset": -854.0731172016611
+        },
+        {
+            "channel_id": 7110,
+            "timing_offset": -854.3691551164806
+        },
+        {
+            "channel_id": 7112,
+            "timing_offset": -854.3594700193381
+        },
+        {
+            "channel_id": 7113,
+            "timing_offset": -854.3833009421185
+        },
+        {
+            "channel_id": 7114,
+            "timing_offset": -853.4127175681899
+        },
+        {
+            "channel_id": 7115,
+            "timing_offset": -855.6444321610558
+        },
+        {
+            "channel_id": 7116,
+            "timing_offset": -854.9837144205001
+        },
+        {
+            "channel_id": 7117,
+            "timing_offset": -854.0860740781503
+        },
+        {
+            "channel_id": 7118,
+            "timing_offset": -853.1502460912819
+        },
+        {
+            "channel_id": 7200,
+            "timing_offset": -598.6114175357
+        },
+        {
+            "channel_id": 7201,
+            "timing_offset": -599.5091574358166
+        },
+        {
+            "channel_id": 7202,
+            "timing_offset": -599.293996573698
+        },
+        {
+            "channel_id": 7203,
+            "timing_offset": -597.8704361745013
+        },
+        {
+            "channel_id": 7204,
+            "timing_offset": -597.9215876424996
+        },
+        {
+            "channel_id": 7206,
+            "timing_offset": -600.984916048442
+        },
+        {
+            "channel_id": 7207,
+            "timing_offset": -599.5775131782926
+        },
+        {
+            "channel_id": 7208,
+            "timing_offset": -599.792876415493
+        },
+        {
+            "channel_id": 7211,
+            "timing_offset": -598.6050039188924
+        },
+        {
+            "channel_id": 7212,
+            "timing_offset": -599.9890807595054
+        },
+        {
+            "channel_id": 7213,
+            "timing_offset": -598.2040517726217
+        },
+        {
+            "channel_id": 7214,
+            "timing_offset": -597.3817828936312
+        },
+        {
+            "channel_id": 7216,
+            "timing_offset": -598.0394751557922
+        },
+        {
+            "channel_id": 7218,
+            "timing_offset": -599.2820391672865
+        },
+        {
+            "channel_id": 7300,
+            "timing_offset": 115.03052673468633
+        },
+        {
+            "channel_id": 7301,
+            "timing_offset": 114.77855243391623
+        },
+        {
+            "channel_id": 7302,
+            "timing_offset": 113.80950165882983
+        },
+        {
+            "channel_id": 7303,
+            "timing_offset": 113.17045325997347
+        },
+        {
+            "channel_id": 7304,
+            "timing_offset": 113.70587323665244
+        },
+        {
+            "channel_id": 7306,
+            "timing_offset": 113.22557141532394
+        },
+        {
+            "channel_id": 7307,
+            "timing_offset": 112.64169332317074
+        },
+        {
+            "channel_id": 7308,
+            "timing_offset": 113.21360783931772
+        },
+        {
+            "channel_id": 7309,
+            "timing_offset": 113.86114627818772
+        },
+        {
+            "channel_id": 7310,
+            "timing_offset": 112.99683344405126
+        },
+        {
+            "channel_id": 7311,
+            "timing_offset": 112.35717014970791
+        },
+        {
+            "channel_id": 7312,
+            "timing_offset": 113.8065534286818
+        },
+        {
+            "channel_id": 7313,
+            "timing_offset": 118.43445879352281
+        },
+        {
+            "channel_id": 7314,
+            "timing_offset": 112.64169763416503
+        },
+        {
+            "channel_id": 7315,
+            "timing_offset": 112.50954746459168
+        },
+        {
+            "channel_id": 7316,
+            "timing_offset": 114.19640439993496
+        },
+        {
+            "channel_id": 7317,
+            "timing_offset": 112.17642861441504
+        },
+        {
+            "channel_id": 7318,
+            "timing_offset": 114.61078993777132
+        },
+        {
+            "channel_id": 7500,
+            "timing_offset": 375.3413093249829
+        },
+        {
+            "channel_id": 7501,
+            "timing_offset": 374.4420563138141
+        },
+        {
+            "channel_id": 7502,
+            "timing_offset": 374.1379114510905
+        },
+        {
+            "channel_id": 7503,
+            "timing_offset": 374.22737194599915
+        },
+        {
+            "channel_id": 7504,
+            "timing_offset": 375.06505091715474
+        },
+        {
+            "channel_id": 7505,
+            "timing_offset": 374.2891633139356
+        },
+        {
+            "channel_id": 7506,
+            "timing_offset": 373.71913794089375
+        },
+        {
+            "channel_id": 7507,
+            "timing_offset": 373.69960262912167
+        },
+        {
+            "channel_id": 7508,
+            "timing_offset": 375.4211689534882
+        },
+        {
+            "channel_id": 7509,
+            "timing_offset": 373.18780236428603
+        },
+        {
+            "channel_id": 7510,
+            "timing_offset": 374.53453322018674
+        },
+        {
+            "channel_id": 7511,
+            "timing_offset": 373.5463597421336
+        },
+        {
+            "channel_id": 7512,
+            "timing_offset": 374.6581647301729
+        },
+        {
+            "channel_id": 7513,
+            "timing_offset": 371.70876422630624
+        },
+        {
+            "channel_id": 7514,
+            "timing_offset": 372.74306744659265
+        },
+        {
+            "channel_id": 7515,
+            "timing_offset": 373.93640173864105
+        },
+        {
+            "channel_id": 7516,
+            "timing_offset": 372.6425992910882
+        },
+        {
+            "channel_id": 7517,
+            "timing_offset": 373.07507471790456
+        },
+        {
+            "channel_id": 7518,
+            "timing_offset": 374.8354046962338
+        },
+        {
+            "channel_id": 7600,
+            "timing_offset": 370.8094035575119
+        },
+        {
+            "channel_id": 7601,
+            "timing_offset": 369.2897930461749
+        },
+        {
+            "channel_id": 7602,
+            "timing_offset": 372.17180544532687
+        },
+        {
+            "channel_id": 7603,
+            "timing_offset": 370.9616712354669
+        },
+        {
+            "channel_id": 7604,
+            "timing_offset": 371.42955672581826
+        },
+        {
+            "channel_id": 7605,
+            "timing_offset": 369.52942852778597
+        },
+        {
+            "channel_id": 7607,
+            "timing_offset": 371.6971805169793
+        },
+        {
+            "channel_id": 7608,
+            "timing_offset": 370.30287160518793
+        },
+        {
+            "channel_id": 7609,
+            "timing_offset": 369.687229685293
+        },
+        {
+            "channel_id": 7611,
+            "timing_offset": 372.0133178343191
+        },
+        {
+            "channel_id": 7612,
+            "timing_offset": 372.17442980821454
+        },
+        {
+            "channel_id": 7613,
+            "timing_offset": 371.0457754793341
+        },
+        {
+            "channel_id": 7614,
+            "timing_offset": 370.93808434745125
+        },
+        {
+            "channel_id": 7615,
+            "timing_offset": 371.3706303923362
+        },
+        {
+            "channel_id": 7616,
+            "timing_offset": 370.5401661215616
+        },
+        {
+            "channel_id": 7617,
+            "timing_offset": 370.33991064267497
+        },
+        {
+            "channel_id": 7618,
+            "timing_offset": 371.727415646988
+        },
+        {
+            "channel_id": 7800,
+            "timing_offset": 266.2347511402425
+        },
+        {
+            "channel_id": 7801,
+            "timing_offset": 267.91392797597376
+        },
+        {
+            "channel_id": 7802,
+            "timing_offset": 269.29634645208324
+        },
+        {
+            "channel_id": 7803,
+            "timing_offset": 268.4742838171988
+        },
+        {
+            "channel_id": 7804,
+            "timing_offset": 268.8076388240413
+        },
+        {
+            "channel_id": 7805,
+            "timing_offset": 267.8442131315386
+        },
+        {
+            "channel_id": 7806,
+            "timing_offset": 268.591418001619
+        },
+        {
+            "channel_id": 7807,
+            "timing_offset": 268.4644100075007
+        },
+        {
+            "channel_id": 7808,
+            "timing_offset": 267.38592634746885
+        },
+        {
+            "channel_id": 7809,
+            "timing_offset": 268.56523754893675
+        },
+        {
+            "channel_id": 7811,
+            "timing_offset": 266.4997858449552
+        },
+        {
+            "channel_id": 7812,
+            "timing_offset": 267.5844527766057
+        },
+        {
+            "channel_id": 7813,
+            "timing_offset": 267.1245464254459
+        },
+        {
+            "channel_id": 7814,
+            "timing_offset": 266.59240715413625
+        },
+        {
+            "channel_id": 7815,
+            "timing_offset": 266.84389261993425
+        },
+        {
+            "channel_id": 7816,
+            "timing_offset": 267.1949778833018
+        },
+        {
+            "channel_id": 7817,
+            "timing_offset": 267.4489210448431
+        },
+        {
+            "channel_id": 7818,
+            "timing_offset": 268.1627698568235
+        },
+        {
+            "channel_id": 8000,
+            "timing_offset": -88.9077338335121
+        },
+        {
+            "channel_id": 8001,
+            "timing_offset": -88.91297915952859
+        },
+        {
+            "channel_id": 8002,
+            "timing_offset": -88.30634522325494
+        },
+        {
+            "channel_id": 8003,
+            "timing_offset": -88.41157887065273
+        },
+        {
+            "channel_id": 8004,
+            "timing_offset": -89.07045590738761
+        },
+        {
+            "channel_id": 8005,
+            "timing_offset": -88.63953247953201
+        },
+        {
+            "channel_id": 8006,
+            "timing_offset": -88.77504320288355
+        },
+        {
+            "channel_id": 8010,
+            "timing_offset": -88.87256325973293
+        },
+        {
+            "channel_id": 8011,
+            "timing_offset": -91.05496099267431
+        },
+        {
+            "channel_id": 8013,
+            "timing_offset": -89.28793036176357
+        },
+        {
+            "channel_id": 8014,
+            "timing_offset": -90.6460474015715
+        },
+        {
+            "channel_id": 8015,
+            "timing_offset": -89.7379707355
+        },
+        {
+            "channel_id": 8016,
+            "timing_offset": -89.13641255103167
+        },
+        {
+            "channel_id": 8017,
+            "timing_offset": -89.08501483707397
+        },
+        {
+            "channel_id": 8018,
+            "timing_offset": -89.994740691743
+        },
+        {
+            "channel_id": 8100,
+            "timing_offset": -91.46111614187676
+        },
+        {
+            "channel_id": 8101,
+            "timing_offset": -91.95163477291027
+        },
+        {
+            "channel_id": 8102,
+            "timing_offset": -91.22920996238264
+        },
+        {
+            "channel_id": 8103,
+            "timing_offset": -91.57541169684914
+        },
+        {
+            "channel_id": 8104,
+            "timing_offset": -91.09872755206068
+        },
+        {
+            "channel_id": 8105,
+            "timing_offset": -91.37725618026501
+        },
+        {
+            "channel_id": 8106,
+            "timing_offset": -91.55079120224073
+        },
+        {
+            "channel_id": 8107,
+            "timing_offset": -92.0979556692263
+        },
+        {
+            "channel_id": 8109,
+            "timing_offset": -89.48438120378567
+        },
+        {
+            "channel_id": 8110,
+            "timing_offset": -90.37647188893489
+        },
+        {
+            "channel_id": 8111,
+            "timing_offset": -91.82865470784928
+        },
+        {
+            "channel_id": 8112,
+            "timing_offset": -91.1687363151495
+        },
+        {
+            "channel_id": 8113,
+            "timing_offset": -90.53921921492335
+        },
+        {
+            "channel_id": 8114,
+            "timing_offset": -91.26414924860576
+        },
+        {
+            "channel_id": 8115,
+            "timing_offset": -90.9942682489997
+        },
+        {
+            "channel_id": 8116,
+            "timing_offset": -91.53786945290553
+        },
+        {
+            "channel_id": 8117,
+            "timing_offset": -92.06984342441993
+        },
+        {
+            "channel_id": 8118,
+            "timing_offset": -90.8114128606667
+        },
+        {
+            "channel_id": 8200,
+            "timing_offset": 470.3333457109271
+        },
+        {
+            "channel_id": 8201,
+            "timing_offset": 467.5168883256518
+        },
+        {
+            "channel_id": 8203,
+            "timing_offset": 470.3036952886332
+        },
+        {
+            "channel_id": 8204,
+            "timing_offset": 471.6703243360385
+        },
+        {
+            "channel_id": 8205,
+            "timing_offset": 470.4804960602007
+        },
+        {
+            "channel_id": 8206,
+            "timing_offset": 469.82647925970616
+        },
+        {
+            "channel_id": 8208,
+            "timing_offset": 469.0950230624544
+        },
+        {
+            "channel_id": 8209,
+            "timing_offset": 469.5109741575375
+        },
+        {
+            "channel_id": 8210,
+            "timing_offset": 469.1393442673688
+        },
+        {
+            "channel_id": 8212,
+            "timing_offset": 469.5523642613784
+        },
+        {
+            "channel_id": 8213,
+            "timing_offset": 469.86133514933016
+        },
+        {
+            "channel_id": 8214,
+            "timing_offset": 469.6741926975346
+        },
+        {
+            "channel_id": 8215,
+            "timing_offset": 468.7511417476573
+        },
+        {
+            "channel_id": 8216,
+            "timing_offset": 465.93377528274596
+        },
+        {
+            "channel_id": 8217,
+            "timing_offset": 470.6184317813319
+        },
+        {
+            "channel_id": 8218,
+            "timing_offset": 469.228646215902
+        },
+        {
+            "channel_id": 8300,
+            "timing_offset": -406.14072472975
+        },
+        {
+            "channel_id": 8301,
+            "timing_offset": -408.73778292626235
+        },
+        {
+            "channel_id": 8302,
+            "timing_offset": -406.42170055525173
+        },
+        {
+            "channel_id": 8303,
+            "timing_offset": -407.6417864128037
+        },
+        {
+            "channel_id": 8304,
+            "timing_offset": -408.0139834942092
+        },
+        {
+            "channel_id": 8305,
+            "timing_offset": -408.46115992798434
+        },
+        {
+            "channel_id": 8306,
+            "timing_offset": -408.37850463406966
+        },
+        {
+            "channel_id": 8307,
+            "timing_offset": -407.9162622098292
+        },
+        {
+            "channel_id": 8308,
+            "timing_offset": -404.9078111593341
+        },
+        {
+            "channel_id": 8309,
+            "timing_offset": -406.60518041504315
+        },
+        {
+            "channel_id": 8310,
+            "timing_offset": -406.42550920629407
+        },
+        {
+            "channel_id": 8311,
+            "timing_offset": -408.0017543884123
+        },
+        {
+            "channel_id": 8312,
+            "timing_offset": -406.1949918922818
+        },
+        {
+            "channel_id": 8314,
+            "timing_offset": -406.68617141594615
+        },
+        {
+            "channel_id": 8315,
+            "timing_offset": -406.7776027959235
+        },
+        {
+            "channel_id": 8316,
+            "timing_offset": -408.4141655661887
+        },
+        {
+            "channel_id": 8317,
+            "timing_offset": -406.0061961747294
+        },
+        {
+            "channel_id": 8318,
+            "timing_offset": -405.96734431599526
+        },
+        {
+            "channel_id": 8400,
+            "timing_offset": -277.62834480257396
+        },
+        {
+            "channel_id": 8401,
+            "timing_offset": -276.0381407014678
+        },
+        {
+            "channel_id": 8402,
+            "timing_offset": -274.9611433429352
+        },
+        {
+            "channel_id": 8403,
+            "timing_offset": -275.0597856603528
+        },
+        {
+            "channel_id": 8404,
+            "timing_offset": -274.5665124119298
+        },
+        {
+            "channel_id": 8405,
+            "timing_offset": -275.59360590122907
+        },
+        {
+            "channel_id": 8406,
+            "timing_offset": -275.7726840590678
+        },
+        {
+            "channel_id": 8407,
+            "timing_offset": -274.54937964775615
+        },
+        {
+            "channel_id": 8408,
+            "timing_offset": -276.4331849980162
+        },
+        {
+            "channel_id": 8409,
+            "timing_offset": -275.37369669512424
+        },
+        {
+            "channel_id": 8411,
+            "timing_offset": -276.58171704708764
+        },
+        {
+            "channel_id": 8412,
+            "timing_offset": -274.81201665606403
+        },
+        {
+            "channel_id": 8413,
+            "timing_offset": -274.806989343626
+        },
+        {
+            "channel_id": 8415,
+            "timing_offset": -275.96116534885056
+        },
+        {
+            "channel_id": 8416,
+            "timing_offset": -276.73866253634554
+        },
+        {
+            "channel_id": 8417,
+            "timing_offset": -276.4954581550491
+        },
+        {
+            "channel_id": 8418,
+            "timing_offset": -277.00325719791
+        },
+        {
+            "channel_id": 8600,
+            "timing_offset": -408.42105239556076
+        },
+        {
+            "channel_id": 8601,
+            "timing_offset": -411.75269367585577
+        },
+        {
+            "channel_id": 8602,
+            "timing_offset": -411.9836332022953
+        },
+        {
+            "channel_id": 8603,
+            "timing_offset": -410.1511356643548
+        },
+        {
+            "channel_id": 8604,
+            "timing_offset": -409.97630828992106
+        },
+        {
+            "channel_id": 8605,
+            "timing_offset": -409.08353007670127
+        },
+        {
+            "channel_id": 8606,
+            "timing_offset": -408.1014361905727
+        },
+        {
+            "channel_id": 8608,
+            "timing_offset": -409.34550743750316
+        },
+        {
+            "channel_id": 8609,
+            "timing_offset": -409.3907173671277
+        },
+        {
+            "channel_id": 8610,
+            "timing_offset": -407.6507555665505
+        },
+        {
+            "channel_id": 8611,
+            "timing_offset": -409.7442709131452
+        },
+        {
+            "channel_id": 8612,
+            "timing_offset": -410.02573628014915
+        },
+        {
+            "channel_id": 8613,
+            "timing_offset": -409.6243828311586
+        },
+        {
+            "channel_id": 8614,
+            "timing_offset": -409.181280820759
+        },
+        {
+            "channel_id": 8615,
+            "timing_offset": -411.42095724715125
+        },
+        {
+            "channel_id": 8616,
+            "timing_offset": -409.1869653642129
+        },
+        {
+            "channel_id": 8617,
+            "timing_offset": -407.7849698195984
+        },
+        {
+            "channel_id": 8618,
+            "timing_offset": -408.6789920021722
+        },
+        {
+            "channel_id": 8700,
+            "timing_offset": -496.469408779774
+        },
+        {
+            "channel_id": 8701,
+            "timing_offset": -494.46624056047375
+        },
+        {
+            "channel_id": 8702,
+            "timing_offset": -496.22163163733956
+        },
+        {
+            "channel_id": 8703,
+            "timing_offset": -495.3913439287636
+        },
+        {
+            "channel_id": 8704,
+            "timing_offset": -495.6940005594838
+        },
+        {
+            "channel_id": 8705,
+            "timing_offset": -494.19664762494125
+        },
+        {
+            "channel_id": 8706,
+            "timing_offset": -497.3968614158223
+        },
+        {
+            "channel_id": 8707,
+            "timing_offset": -494.6457993529322
+        },
+        {
+            "channel_id": 8708,
+            "timing_offset": -495.74801283323853
+        },
+        {
+            "channel_id": 8709,
+            "timing_offset": -494.87997752733537
+        },
+        {
+            "channel_id": 8710,
+            "timing_offset": -494.24235914998627
+        },
+        {
+            "channel_id": 8711,
+            "timing_offset": -494.58295738354997
+        },
+        {
+            "channel_id": 8712,
+            "timing_offset": -494.93090832914254
+        },
+        {
+            "channel_id": 8713,
+            "timing_offset": -496.3677895528585
+        },
+        {
+            "channel_id": 8714,
+            "timing_offset": -494.96091667181304
+        },
+        {
+            "channel_id": 8715,
+            "timing_offset": -494.4999911115797
+        },
+        {
+            "channel_id": 8716,
+            "timing_offset": -494.9000583329355
+        },
+        {
+            "channel_id": 8717,
+            "timing_offset": -493.94999139748006
+        },
+        {
+            "channel_id": 8718,
+            "timing_offset": -493.8955154683162
+        },
+        {
+            "channel_id": 8800,
+            "timing_offset": 374.6574281429203
+        },
+        {
+            "channel_id": 8801,
+            "timing_offset": 375.1451511693382
+        },
+        {
+            "channel_id": 8802,
+            "timing_offset": 374.39943427048115
+        },
+        {
+            "channel_id": 8803,
+            "timing_offset": 373.8847450632988
+        },
+        {
+            "channel_id": 8804,
+            "timing_offset": 375.8876675435744
+        },
+        {
+            "channel_id": 8805,
+            "timing_offset": 375.82842375916357
+        },
+        {
+            "channel_id": 8806,
+            "timing_offset": 375.10480285237975
+        },
+        {
+            "channel_id": 8807,
+            "timing_offset": 375.9003194892564
+        },
+        {
+            "channel_id": 8808,
+            "timing_offset": 375.5580468679715
+        },
+        {
+            "channel_id": 8809,
+            "timing_offset": 373.73238811258017
+        },
+        {
+            "channel_id": 8810,
+            "timing_offset": 373.98354553532823
+        },
+        {
+            "channel_id": 8811,
+            "timing_offset": 373.3701922993637
+        },
+        {
+            "channel_id": 8812,
+            "timing_offset": 373.83462450540804
+        },
+        {
+            "channel_id": 8813,
+            "timing_offset": 373.50699887923486
+        },
+        {
+            "channel_id": 8814,
+            "timing_offset": 374.99674137021765
+        },
+        {
+            "channel_id": 8815,
+            "timing_offset": 373.4336207039314
+        },
+        {
+            "channel_id": 8816,
+            "timing_offset": 374.70091925759385
+        },
+        {
+            "channel_id": 8817,
+            "timing_offset": 375.1975588671592
+        },
+        {
+            "channel_id": 8818,
+            "timing_offset": 375.0606463696866
+        },
+        {
+            "channel_id": 8900,
+            "timing_offset": 375.5761405747375
+        },
+        {
+            "channel_id": 8901,
+            "timing_offset": 375.5096780145716
+        },
+        {
+            "channel_id": 8902,
+            "timing_offset": 374.7622656969417
+        },
+        {
+            "channel_id": 8903,
+            "timing_offset": 375.06907563452876
+        },
+        {
+            "channel_id": 8904,
+            "timing_offset": 375.47063589715333
+        },
+        {
+            "channel_id": 8905,
+            "timing_offset": 374.5721520607639
+        },
+        {
+            "channel_id": 8906,
+            "timing_offset": 374.38781394230557
+        },
+        {
+            "channel_id": 8907,
+            "timing_offset": 373.1002293128951
+        },
+        {
+            "channel_id": 8908,
+            "timing_offset": 376.19174749953453
+        },
+        {
+            "channel_id": 8909,
+            "timing_offset": 376.148433394615
+        },
+        {
+            "channel_id": 8910,
+            "timing_offset": 375.8492142563154
+        },
+        {
+            "channel_id": 8911,
+            "timing_offset": 374.91443614906643
+        },
+        {
+            "channel_id": 8912,
+            "timing_offset": 375.17213115303326
+        },
+        {
+            "channel_id": 8913,
+            "timing_offset": 375.8644145513622
+        },
+        {
+            "channel_id": 8914,
+            "timing_offset": 374.2921015195829
+        },
+        {
+            "channel_id": 8915,
+            "timing_offset": 375.549769851253
+        },
+        {
+            "channel_id": 8916,
+            "timing_offset": 375.1747802243322
+        },
+        {
+            "channel_id": 8917,
+            "timing_offset": 375.21804922788215
+        },
+        {
+            "channel_id": 8918,
+            "timing_offset": 376.0350566059614
+        },
+        {
+            "channel_id": 9000,
+            "timing_offset": 14.139567127729858
+        },
+        {
+            "channel_id": 9001,
+            "timing_offset": 15.00716516160621
+        },
+        {
+            "channel_id": 9002,
+            "timing_offset": 13.593356547532748
+        },
+        {
+            "channel_id": 9003,
+            "timing_offset": 15.433677122331321
+        },
+        {
+            "channel_id": 9004,
+            "timing_offset": 13.082195415481706
+        },
+        {
+            "channel_id": 9005,
+            "timing_offset": 16.013257801656625
+        },
+        {
+            "channel_id": 9006,
+            "timing_offset": 12.288691310696073
+        },
+        {
+            "channel_id": 9007,
+            "timing_offset": 13.943969187689587
+        },
+        {
+            "channel_id": 9008,
+            "timing_offset": 15.397680828346276
+        },
+        {
+            "channel_id": 9011,
+            "timing_offset": 16.29559716063763
+        },
+        {
+            "channel_id": 9012,
+            "timing_offset": 15.115312861464929
+        },
+        {
+            "channel_id": 9013,
+            "timing_offset": 16.072171643356
+        },
+        {
+            "channel_id": 9014,
+            "timing_offset": 14.295548668675874
+        },
+        {
+            "channel_id": 9015,
+            "timing_offset": 13.802424474993012
+        },
+        {
+            "channel_id": 9016,
+            "timing_offset": 14.760516150218262
+        },
+        {
+            "channel_id": 9017,
+            "timing_offset": 15.196319717889851
+        },
+        {
+            "channel_id": 9018,
+            "timing_offset": 14.63979053062476
+        },
+        {
+            "channel_id": 9200,
+            "timing_offset": 259.9560230179612
+        },
+        {
+            "channel_id": 9201,
+            "timing_offset": 262.0939131766392
+        },
+        {
+            "channel_id": 9202,
+            "timing_offset": 264.5099220337711
+        },
+        {
+            "channel_id": 9203,
+            "timing_offset": 265.01690153257937
+        },
+        {
+            "channel_id": 9204,
+            "timing_offset": 263.83105535569246
+        },
+        {
+            "channel_id": 9205,
+            "timing_offset": 263.5387755552298
+        },
+        {
+            "channel_id": 9206,
+            "timing_offset": 264.7725981319593
+        },
+        {
+            "channel_id": 9207,
+            "timing_offset": 263.37173510970774
+        },
+        {
+            "channel_id": 9208,
+            "timing_offset": 263.6381815764128
+        },
+        {
+            "channel_id": 9209,
+            "timing_offset": 261.7084837462972
+        },
+        {
+            "channel_id": 9210,
+            "timing_offset": 263.909355929201
+        },
+        {
+            "channel_id": 9211,
+            "timing_offset": 263.59624042431017
+        },
+        {
+            "channel_id": 9213,
+            "timing_offset": 262.514484185196
+        },
+        {
+            "channel_id": 9214,
+            "timing_offset": 261.6913639351171
+        },
+        {
+            "channel_id": 9215,
+            "timing_offset": 263.6827119960193
+        },
+        {
+            "channel_id": 9216,
+            "timing_offset": 263.5886460645811
+        },
+        {
+            "channel_id": 9217,
+            "timing_offset": 263.6670279866675
+        },
+        {
+            "channel_id": 9218,
+            "timing_offset": 261.84078825768205
+        },
+        {
+            "channel_id": 9300,
+            "timing_offset": -267.10050013435574
+        },
+        {
+            "channel_id": 9301,
+            "timing_offset": -266.4834631759966
+        },
+        {
+            "channel_id": 9302,
+            "timing_offset": -266.87942233372587
+        },
+        {
+            "channel_id": 9303,
+            "timing_offset": -267.0810249474361
+        },
+        {
+            "channel_id": 9304,
+            "timing_offset": -267.1972548747779
+        },
+        {
+            "channel_id": 9305,
+            "timing_offset": -266.9239548366706
+        },
+        {
+            "channel_id": 9306,
+            "timing_offset": -266.485771626737
+        },
+        {
+            "channel_id": 9307,
+            "timing_offset": -265.8395159920412
+        },
+        {
+            "channel_id": 9308,
+            "timing_offset": -265.44669823418724
+        },
+        {
+            "channel_id": 9309,
+            "timing_offset": -266.0876827591228
+        },
+        {
+            "channel_id": 9310,
+            "timing_offset": -266.261979778211
+        },
+        {
+            "channel_id": 9311,
+            "timing_offset": -266.8524601450892
+        },
+        {
+            "channel_id": 9312,
+            "timing_offset": -267.96154374580027
+        },
+        {
+            "channel_id": 9313,
+            "timing_offset": -266.0903930586814
+        },
+        {
+            "channel_id": 9314,
+            "timing_offset": -265.3165980791403
+        },
+        {
+            "channel_id": 9315,
+            "timing_offset": -267.63230350898607
+        },
+        {
+            "channel_id": 9316,
+            "timing_offset": -266.0329900336689
+        },
+        {
+            "channel_id": 9317,
+            "timing_offset": -267.61222736828284
+        },
+        {
+            "channel_id": 9318,
+            "timing_offset": -266.33234142025464
+        },
+        {
+            "channel_id": 9400,
+            "timing_offset": -855.7373492889039
+        },
+        {
+            "channel_id": 9401,
+            "timing_offset": -855.2268977824446
+        },
+        {
+            "channel_id": 9402,
+            "timing_offset": -853.8417890493389
+        },
+        {
+            "channel_id": 9403,
+            "timing_offset": -855.5887203755514
+        },
+        {
+            "channel_id": 9404,
+            "timing_offset": -854.6392148612321
+        },
+        {
+            "channel_id": 9405,
+            "timing_offset": -855.2089843055887
+        },
+        {
+            "channel_id": 9406,
+            "timing_offset": -854.7399877396422
+        },
+        {
+            "channel_id": 9407,
+            "timing_offset": -854.7432724076627
+        },
+        {
+            "channel_id": 9408,
+            "timing_offset": -856.0399403903506
+        },
+        {
+            "channel_id": 9409,
+            "timing_offset": -854.171949789761
+        },
+        {
+            "channel_id": 9410,
+            "timing_offset": -855.7476733347168
+        },
+        {
+            "channel_id": 9411,
+            "timing_offset": -855.8198903678591
+        },
+        {
+            "channel_id": 9412,
+            "timing_offset": -853.8904078263131
+        },
+        {
+            "channel_id": 9414,
+            "timing_offset": -854.5804213629341
+        },
+        {
+            "channel_id": 9415,
+            "timing_offset": -854.8105554417392
+        },
+        {
+            "channel_id": 9416,
+            "timing_offset": -855.3228338129677
+        },
+        {
+            "channel_id": 9417,
+            "timing_offset": -854.4901284445356
+        },
+        {
+            "channel_id": 9500,
+            "timing_offset": -856.4286116786949
+        },
+        {
+            "channel_id": 9501,
+            "timing_offset": -856.6845703482593
+        },
+        {
+            "channel_id": 9502,
+            "timing_offset": -858.3516244385644
+        },
+        {
+            "channel_id": 9503,
+            "timing_offset": -856.4488309363755
+        },
+        {
+            "channel_id": 9504,
+            "timing_offset": -857.1176319844006
+        },
+        {
+            "channel_id": 9505,
+            "timing_offset": -856.6016838855139
+        },
+        {
+            "channel_id": 9506,
+            "timing_offset": -856.2237348851903
+        },
+        {
+            "channel_id": 9507,
+            "timing_offset": -855.326328396765
+        },
+        {
+            "channel_id": 9508,
+            "timing_offset": -855.632294098323
+        },
+        {
+            "channel_id": 9510,
+            "timing_offset": -857.8678009979627
+        },
+        {
+            "channel_id": 9511,
+            "timing_offset": -856.5401448800554
+        },
+        {
+            "channel_id": 9512,
+            "timing_offset": -856.6044603560531
+        },
+        {
+            "channel_id": 9513,
+            "timing_offset": -856.7822603716401
+        },
+        {
+            "channel_id": 9514,
+            "timing_offset": -856.4952388510994
+        },
+        {
+            "channel_id": 9515,
+            "timing_offset": -857.8785225368995
+        },
+        {
+            "channel_id": 9516,
+            "timing_offset": -857.9748611547597
+        },
+        {
+            "channel_id": 9517,
+            "timing_offset": -857.2979026747618
+        },
+        {
+            "channel_id": 9518,
+            "timing_offset": -856.9120707279234
+        },
+        {
+            "channel_id": 9700,
+            "timing_offset": 11.616705772036727
+        },
+        {
+            "channel_id": 9701,
+            "timing_offset": 11.559794112949813
+        },
+        {
+            "channel_id": 9702,
+            "timing_offset": 12.932873190841711
+        },
+        {
+            "channel_id": 9703,
+            "timing_offset": 12.41687365354889
+        },
+        {
+            "channel_id": 9704,
+            "timing_offset": 11.730465577252037
+        },
+        {
+            "channel_id": 9705,
+            "timing_offset": 12.84135781482531
+        },
+        {
+            "channel_id": 9706,
+            "timing_offset": 12.209484064120899
+        },
+        {
+            "channel_id": 9707,
+            "timing_offset": 10.993459698529835
+        },
+        {
+            "channel_id": 9708,
+            "timing_offset": 10.222310836385285
+        },
+        {
+            "channel_id": 9709,
+            "timing_offset": 12.600359561298074
+        },
+        {
+            "channel_id": 9710,
+            "timing_offset": 12.688275764016678
+        },
+        {
+            "channel_id": 9711,
+            "timing_offset": 11.81035547694388
+        },
+        {
+            "channel_id": 9714,
+            "timing_offset": 9.97876676472842
+        },
+        {
+            "channel_id": 9715,
+            "timing_offset": 10.640274212436907
+        },
+        {
+            "channel_id": 9716,
+            "timing_offset": 12.323652930361755
+        },
+        {
+            "channel_id": 9717,
+            "timing_offset": 12.299259650597062
+        },
+        {
+            "channel_id": 9718,
+            "timing_offset": 12.35045675685447
+        },
+        {
+            "channel_id": 9800,
+            "timing_offset": -248.26848728901118
+        },
+        {
+            "channel_id": 9801,
+            "timing_offset": -248.13026131848017
+        },
+        {
+            "channel_id": 9802,
+            "timing_offset": -248.1919489989132
+        },
+        {
+            "channel_id": 9803,
+            "timing_offset": -247.43131571799074
+        },
+        {
+            "channel_id": 9804,
+            "timing_offset": -247.95339075977185
+        },
+        {
+            "channel_id": 9805,
+            "timing_offset": -246.83635420398318
+        },
+        {
+            "channel_id": 9806,
+            "timing_offset": -246.42282516336482
+        },
+        {
+            "channel_id": 9807,
+            "timing_offset": -247.58238643680093
+        },
+        {
+            "channel_id": 9808,
+            "timing_offset": -248.02347091352885
+        },
+        {
+            "channel_id": 9813,
+            "timing_offset": -249.02622677290248
+        },
+        {
+            "channel_id": 9814,
+            "timing_offset": -248.7630024178676
+        },
+        {
+            "channel_id": 9815,
+            "timing_offset": -247.8327847164222
+        },
+        {
+            "channel_id": 9816,
+            "timing_offset": -248.0811754162532
+        },
+        {
+            "channel_id": 9817,
+            "timing_offset": -248.39664239859962
+        },
+        {
+            "channel_id": 9818,
+            "timing_offset": -249.1654600878066
+        },
+        {
+            "channel_id": 10000,
+            "timing_offset": -498.1792290667441
+        },
+        {
+            "channel_id": 10001,
+            "timing_offset": -498.8164105723716
+        },
+        {
+            "channel_id": 10002,
+            "timing_offset": -495.9087559353948
+        },
+        {
+            "channel_id": 10003,
+            "timing_offset": -494.6857858405344
+        },
+        {
+            "channel_id": 10004,
+            "timing_offset": -496.81059889961466
+        },
+        {
+            "channel_id": 10005,
+            "timing_offset": -494.9179538807174
+        },
+        {
+            "channel_id": 10006,
+            "timing_offset": -497.42691910635205
+        },
+        {
+            "channel_id": 10007,
+            "timing_offset": -497.1528589917511
+        },
+        {
+            "channel_id": 10008,
+            "timing_offset": -494.5879788510898
+        },
+        {
+            "channel_id": 10009,
+            "timing_offset": -494.05136502299075
+        },
+        {
+            "channel_id": 10012,
+            "timing_offset": -495.63596035018185
+        },
+        {
+            "channel_id": 10013,
+            "timing_offset": -494.969662089209
+        },
+        {
+            "channel_id": 10014,
+            "timing_offset": -496.33314797262113
+        },
+        {
+            "channel_id": 10015,
+            "timing_offset": -496.6425274339467
+        },
+        {
+            "channel_id": 10016,
+            "timing_offset": -495.8426433458579
+        },
+        {
+            "channel_id": 10017,
+            "timing_offset": -496.8624251710041
+        },
+        {
+            "channel_id": 10018,
+            "timing_offset": -494.33802733151686
+        },
+        {
+            "channel_id": 10100,
+            "timing_offset": -246.96605040927506
+        },
+        {
+            "channel_id": 10102,
+            "timing_offset": -247.55527027409298
+        },
+        {
+            "channel_id": 10103,
+            "timing_offset": -246.78222210347553
+        },
+        {
+            "channel_id": 10104,
+            "timing_offset": -248.497730435921
+        },
+        {
+            "channel_id": 10105,
+            "timing_offset": -246.6294091010955
+        },
+        {
+            "channel_id": 10106,
+            "timing_offset": -247.20907533401837
+        },
+        {
+            "channel_id": 10107,
+            "timing_offset": -246.4968133981076
+        },
+        {
+            "channel_id": 10109,
+            "timing_offset": -243.8045995644106
+        },
+        {
+            "channel_id": 10110,
+            "timing_offset": -244.4570261658062
+        },
+        {
+            "channel_id": 10111,
+            "timing_offset": -246.38509957948142
+        },
+        {
+            "channel_id": 10112,
+            "timing_offset": -247.58076527167128
+        },
+        {
+            "channel_id": 10113,
+            "timing_offset": -247.13696492209874
+        },
+        {
+            "channel_id": 10114,
+            "timing_offset": -246.3272322768391
+        },
+        {
+            "channel_id": 10115,
+            "timing_offset": -248.0693639182076
+        },
+        {
+            "channel_id": 10116,
+            "timing_offset": -247.09228163839677
+        },
+        {
+            "channel_id": 10117,
+            "timing_offset": -246.79998882300282
+        },
+        {
+            "channel_id": 10118,
+            "timing_offset": -247.87333740345045
+        },
+        {
+            "channel_id": 10300,
+            "timing_offset": -88.04913226816254
+        },
+        {
+            "channel_id": 10301,
+            "timing_offset": -88.62229102990527
+        },
+        {
+            "channel_id": 10302,
+            "timing_offset": -87.87714145699681
+        },
+        {
+            "channel_id": 10303,
+            "timing_offset": -87.15781878499614
+        },
+        {
+            "channel_id": 10304,
+            "timing_offset": -88.64122660014851
+        },
+        {
+            "channel_id": 10305,
+            "timing_offset": -88.39646538611409
+        },
+        {
+            "channel_id": 10307,
+            "timing_offset": -87.64489287182535
+        },
+        {
+            "channel_id": 10308,
+            "timing_offset": -87.67931844048759
+        },
+        {
+            "channel_id": 10311,
+            "timing_offset": -86.60956797717941
+        },
+        {
+            "channel_id": 10312,
+            "timing_offset": -88.09760804998947
+        },
+        {
+            "channel_id": 10313,
+            "timing_offset": -88.17530557892587
+        },
+        {
+            "channel_id": 10314,
+            "timing_offset": -87.6518870266692
+        },
+        {
+            "channel_id": 10315,
+            "timing_offset": -87.97629192703876
+        },
+        {
+            "channel_id": 10316,
+            "timing_offset": -88.57500641484448
+        },
+        {
+            "channel_id": 10317,
+            "timing_offset": -86.7968246900107
+        },
+        {
+            "channel_id": 10400,
+            "timing_offset": -749.6998968846683
+        },
+        {
+            "channel_id": 10401,
+            "timing_offset": -747.2204535501633
+        },
+        {
+            "channel_id": 10402,
+            "timing_offset": -750.2200367313792
+        },
+        {
+            "channel_id": 10403,
+            "timing_offset": -749.1458547763435
+        },
+        {
+            "channel_id": 10404,
+            "timing_offset": -747.7126633492708
+        },
+        {
+            "channel_id": 10405,
+            "timing_offset": -749.705936030995
+        },
+        {
+            "channel_id": 10406,
+            "timing_offset": -748.7405160846766
+        },
+        {
+            "channel_id": 10407,
+            "timing_offset": -747.7658515392884
+        },
+        {
+            "channel_id": 10408,
+            "timing_offset": -748.2921500007084
+        },
+        {
+            "channel_id": 10409,
+            "timing_offset": -747.4257987534205
+        },
+        {
+            "channel_id": 10410,
+            "timing_offset": -748.4099400670102
+        },
+        {
+            "channel_id": 10411,
+            "timing_offset": -748.3530163235932
+        },
+        {
+            "channel_id": 10416,
+            "timing_offset": -747.816534465859
+        },
+        {
+            "channel_id": 10417,
+            "timing_offset": -747.2397051950895
+        },
+        {
+            "channel_id": 10418,
+            "timing_offset": -748.5183198283303
+        },
+        {
+            "channel_id": 10500,
+            "timing_offset": -745.9880455891744
+        },
+        {
+            "channel_id": 10501,
+            "timing_offset": -746.6142075815495
+        },
+        {
+            "channel_id": 10502,
+            "timing_offset": -747.4039037518123
+        },
+        {
+            "channel_id": 10503,
+            "timing_offset": -746.0336558892902
+        },
+        {
+            "channel_id": 10504,
+            "timing_offset": -746.4921060187593
+        },
+        {
+            "channel_id": 10505,
+            "timing_offset": -746.2040467687277
+        },
+        {
+            "channel_id": 10506,
+            "timing_offset": -746.8006274508916
+        },
+        {
+            "channel_id": 10507,
+            "timing_offset": -747.9533884636503
+        },
+        {
+            "channel_id": 10508,
+            "timing_offset": -746.7519548159071
+        },
+        {
+            "channel_id": 10509,
+            "timing_offset": -746.4457284746068
+        },
+        {
+            "channel_id": 10510,
+            "timing_offset": -747.6962853111598
+        },
+        {
+            "channel_id": 10511,
+            "timing_offset": -746.526987508561
+        },
+        {
+            "channel_id": 10512,
+            "timing_offset": -746.1986105707613
+        },
+        {
+            "channel_id": 10513,
+            "timing_offset": -745.4615879956353
+        },
+        {
+            "channel_id": 10514,
+            "timing_offset": -745.278252616134
+        },
+        {
+            "channel_id": 10515,
+            "timing_offset": -747.9244247345812
+        },
+        {
+            "channel_id": 10516,
+            "timing_offset": -746.0143686969432
+        },
+        {
+            "channel_id": 10517,
+            "timing_offset": -746.8416760726349
+        },
+        {
+            "channel_id": 10518,
+            "timing_offset": -747.1383301355037
+        }
+    ]
+}
