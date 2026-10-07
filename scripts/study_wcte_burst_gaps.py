@@ -20,6 +20,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import numpy as np
 import uproot
 
@@ -36,6 +37,8 @@ T2_ID = 8
 HC2_ID = 11
 HD_IDS = {**{32 + i: i for i in range(7)}, 16: 7,
           **{17 + i: i + 8 for i in range(7)}}
+HD_DT_WINDOWS = {hd: ((-50.0, 100.0) if hd in (0, 1, 2, 3, 8, 9, 10, 11)
+                       else (80.0, 200.0)) for hd in range(15)}
 REQUIRED = ("run_id", "event_number", "readout_number", "window_data_quality_mask",
             "hit_pmt_calibrated_times", "hit_pmt_charges", "hit_pmt_readout_mask",
             "hit_mpmt_slot_ids", "hit_pmt_position_ids",
@@ -116,11 +119,26 @@ def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, b
             if cid not in HD_IDS:
                 continue
             hd = HD_IDS[cid]
-            lo, hi = (-50, 100) if hd in (0, 1, 2, 3, 8, 9, 10, 11) else (80, 200)
+            lo, hi = HD_DT_WINDOWS[hd]
             if any(lo < hd_time - t0_time < hi for t0_time in t0):
                 tagged = True
                 break
     return beam_ok, tagged, t0_group_centers(t0), refs
+
+
+def hd_matches_to_group(hits: list[tuple[int, float]], t0_time: float
+                        ) -> list[tuple[int, int, float, float]]:
+    """HD hits inside the existing element-specific timing window of one T0 group."""
+    matches = []
+    for channel_id, hd_time in hits:
+        if channel_id not in HD_IDS:
+            continue
+        hd_id = HD_IDS[channel_id]
+        low, high = HD_DT_WINDOWS[hd_id]
+        dt = hd_time - t0_time
+        if low < dt < high:
+            matches.append((channel_id, hd_id, hd_time, dt))
+    return matches
 
 
 def later_hodoscope_match_counts(event, t0_centers: list[float], *,
@@ -208,18 +226,189 @@ def plot_t0_comparison(path: Path, t0_hist: np.ndarray, pmt_hist: np.ndarray,
     plt.close(fig)
 
 
+def plot_hodoscope_times(path: Path, histograms: dict[int, np.ndarray],
+                         edges: np.ndarray, tdc_time_mode: str) -> None:
+    """Plot each HD element's TDC hits relative to the earliest T0 group."""
+    fig, axes = plt.subplots(3, 5, figsize=(15, 9), sharex=True, sharey=True,
+                             constrained_layout=True)
+    for hd_id, axis in enumerate(axes.flat):
+        counts = histograms[hd_id]
+        axis.stairs(counts, edges, color="tab:purple", linewidth=1.25)
+        axis.set_title(f"HD{hd_id} (n={counts.sum():,})", fontsize=10)
+        axis.grid(alpha=0.18)
+    for axis in axes[-1, :]:
+        axis.set_xlabel("Corrected TDC time − earliest T0 group (ns)")
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Hits / bin")
+    fig.suptitle(f"Tagged-gamma hodoscope hits by element — {tdc_time_mode} TDC correction\n"
+                 "Relative T0 timing only; HD element indicates remaining positron energy")
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
+
+
+def plot_hd_residuals(path: Path, values_by_hd: dict[int, list[float]], *,
+                      title: str, xlabel: str, limits: tuple[float, float]) -> None:
+    """Per-element residual histograms; all values remain available in CSV."""
+    fig, axes = plt.subplots(3, 5, figsize=(16, 9), sharex=True, sharey=True,
+                             constrained_layout=True)
+    edges = np.linspace(limits[0], limits[1], 151)
+    for hd_id, axis in enumerate(axes.flat):
+        values = np.asarray(values_by_hd[hd_id], dtype=float)
+        axis.hist(values, bins=edges, histtype="step", color="tab:blue", linewidth=1.2)
+        axis.set_title(f"HD{hd_id} (n={len(values):,})", fontsize=10)
+        axis.grid(alpha=0.18)
+    for axis in axes[-1, :]:
+        axis.set_xlabel(xlabel)
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Pairs / bin")
+    fig.suptitle(title + " — per HD element")
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
+
+
+def plot_delayed_match_map(path: Path, t0_residuals: list[float],
+                           hd_residuals: list[float]) -> None:
+    fig, axis = plt.subplots(figsize=(8, 6), constrained_layout=True)
+    if t0_residuals:
+        hist = axis.hist2d(t0_residuals, hd_residuals, bins=(100, 100),
+                           range=((-1000, 1000), (-1000, 1000)), cmap="viridis",
+                           norm=LogNorm(vmin=1))
+        fig.colorbar(hist[3], ax=axis, label="Pairs / bin")
+    else:
+        axis.text(0.5, 0.5, "No delayed PMT–later-HD pairs",
+                  transform=axis.transAxes, ha="center", va="center")
+    axis.axvline(0, color="white", linewidth=0.8, alpha=0.8)
+    axis.axhline(0, color="white", linewidth=0.8, alpha=0.8)
+    axis.set(xlabel="PMT delay after prompt − later-T0 group gap (ns)",
+             ylabel="(delayed PMT − later HD) − (prompt PMT − prompt HD) (ns)",
+             title="Later-bunch / HD timing consistency (diagnostic only)")
+    axis.grid(alpha=0.15)
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
+
+
+def plot_t5_native_times(path: Path, t5_times: list[float], available: bool) -> None:
+    fig, axis = plt.subplots(figsize=(9, 5), constrained_layout=True)
+    if t5_times:
+        axis.hist(t5_times, bins=150, histtype="step", color="tab:red")
+    else:
+        message = "No T5 times in selected windows" if available else "ROOT tree has no T5_hit_time branch"
+        axis.text(0.5, 0.5, message, transform=axis.transAxes,
+                  ha="center", va="center")
+    axis.set(xlabel="T5_hit_time (native branch units; no alignment applied)",
+             ylabel="Hits / bin", title="T5 hit-time distribution — native values only")
+    axis.grid(alpha=0.2)
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
+
+
+def make_diagnostic_veto_comparison(output_dir: Path, prompt_residuals: dict[int, list[float]],
+                                    eligible_prompt_windows: int, *,
+                                    t0_window_ns: float, pmt_hd_window_ns: float,
+                                    bin_ns: float, delay_min_ns: float,
+                                    delay_max_ns: float) -> dict:
+    """Compare delayed candidates with a configurable later-T0+HD diagnostic veto."""
+    prompt_medians = {hd_id: float(np.median(values))
+                      for hd_id, values in prompt_residuals.items() if values}
+    vetoed: set[tuple[str, str, str, str]] = set()
+    pair_count = 0
+    with (output_dir / "pmt_hd_timing_pairs.csv").open(
+            newline="", encoding="utf-8") as pair_file:
+        for row in csv.DictReader(pair_file):
+            if row["pair_kind"] != "delayed_candidate_later_t0_hd":
+                continue
+            hd_id = int(row["hd_element"])
+            if hd_id not in prompt_medians:
+                continue
+            bunch_residual = float(row["pmt_delay_minus_t0_gap_ns"])
+            hd_residual = float(row["pmt_minus_hd_ns"]) - prompt_medians[hd_id]
+            if abs(bunch_residual) <= t0_window_ns and abs(hd_residual) <= pmt_hd_window_ns:
+                key = (row["root_entry"], row["readout_number"],
+                       row["event_number"], row["burst_index"])
+                if key not in vetoed:
+                    vetoed.add(key)
+                    pair_count += 1
+
+    base_path = output_dir / "delayed_candidates_no_veto.csv"
+    all_delays: list[float] = []
+    vetoed_delays: list[float] = []
+    with base_path.open(newline="", encoding="utf-8") as source, \
+            (output_dir / "delayed_candidates_veto_comparison.csv").open(
+                "w", newline="", encoding="utf-8") as target:
+        reader = csv.DictReader(source)
+        writer = csv.DictWriter(target, fieldnames=(*reader.fieldnames, "veto_by_later_t0_hd"))
+        writer.writeheader()
+        for row in reader:
+            delay = float(row["delay_after_prompt_ns"])
+            key = (row["root_entry"], row["readout_number"],
+                   row["event_number"], row["burst_index"])
+            is_vetoed = key in vetoed
+            row["veto_by_later_t0_hd"] = int(is_vetoed)
+            writer.writerow(row)
+            all_delays.append(delay)
+            if is_vetoed:
+                vetoed_delays.append(delay)
+    edges = np.arange(delay_min_ns, delay_max_ns + bin_ns, bin_ns)
+    total = np.histogram(all_delays, bins=edges)[0]
+    removed = np.histogram(vetoed_delays, bins=edges)[0]
+    retained = total - removed
+    denominator = max(eligible_prompt_windows, 1)
+    fig, axis = plt.subplots(figsize=(11, 5.5), constrained_layout=True)
+    for values, label, color in (
+            (total, f"No veto ({len(all_delays):,} candidates)", "black"),
+            (removed, f"HD+T0 matched ({len(vetoed_delays):,})", "tab:red"),
+            (retained, f"Remaining ({len(all_delays) - len(vetoed_delays):,})", "tab:blue")):
+        axis.stairs(values / denominator, edges, label=label, color=color, linewidth=1.6)
+    axis.set(xlabel="Delayed PMT burst time − unique prompt burst time (ns)",
+             ylabel="Candidates / prompt-tagged readout / bin",
+             title=("No-veto vs diagnostic candidate-level later-T0+HD veto\n"
+                    f"Both timing residuals within ±{t0_window_ns:g}/±{pmt_hd_window_ns:g} ns"))
+    axis.grid(alpha=0.2)
+    axis.legend(fontsize=9)
+    fig.savefig(output_dir / "delayed_candidate_no_veto_vs_late_hd_veto.png", dpi=170)
+    plt.close(fig)
+    return {"eligible_prompt_tagged_readouts": eligible_prompt_windows,
+            "no_veto_delayed_candidates": len(all_delays),
+            "vetoed_candidates": len(vetoed_delays),
+            "remaining_candidates": len(all_delays) - len(vetoed_delays),
+            "candidate_veto_fraction": len(vetoed_delays) / len(all_delays) if all_delays else None,
+            "matching_later_t0_hd_pairs_that_vetoed_candidates": pair_count,
+            "t0_gap_match_window_ns": t0_window_ns,
+            "pmt_hd_residual_match_window_ns": pmt_hd_window_ns,
+            "prompt_median_pmt_minus_hd_ns_by_element": {
+                str(hd_id): median for hd_id, median in prompt_medians.items()},
+            "definition": "Diagnostic only: a delayed PMT burst is marked if any later T0+HD match has PMT-delay minus T0-gap and prompt-median-corrected PMT-HD residuals inside the configured windows. No cut is applied to the source sample."}
+
+
 def run(args: argparse.Namespace) -> dict:
     tdc_mode = getattr(args, "tdc_time_mode", "reference")
     prompt_min = getattr(args, "prompt_min_ns", 1500)
     prompt_max = getattr(args, "prompt_max_ns", 1900)
+    delayed_min = getattr(args, "delayed_min_ns", 500)
+    delayed_max = getattr(args, "delayed_max_ns", 7500)
+    veto_t0_window = getattr(args, "veto_t0_window_ns", 100)
+    veto_pmt_hd_window = getattr(args, "veto_pmt_hd_window_ns", 100)
+    veto_bin = getattr(args, "veto_bin_ns", 25)
     if prompt_max <= prompt_min:
         raise ValueError("Prompt maximum must exceed prompt minimum")
+    if delayed_max <= delayed_min or min(veto_t0_window, veto_pmt_hd_window, veto_bin) <= 0:
+        raise ValueError("Require positive diagnostic windows and delayed range")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     edges = np.arange(0, args.max_ns - args.min_ns + args.hist_bin_ns, args.hist_bin_ns)
     histograms = {(kind, group): np.zeros(len(edges) - 1, dtype=np.int64)
                   for kind in ("consecutive", "later_from_strongest")
                   for group in ("one_t0_group", "multiple_t0_groups", "no_t0")}
     t0_hist = np.zeros(len(edges) - 1, dtype=np.int64)
+    hd_edges = np.arange(-500, max(args.max_ns, delayed_max) + 501,
+                         max(args.hist_bin_ns, 10))
+    hd_histograms = {hd_id: np.zeros(len(hd_edges) - 1, dtype=np.int64) for hd_id in range(15)}
+    prompt_pmt_hd_by_element = {hd_id: [] for hd_id in range(15)}
+    delayed_pmt_hd_by_element = {hd_id: [] for hd_id in range(15)}
+    delayed_relative_by_element = {hd_id: [] for hd_id in range(15)}
+    delayed_t0_residuals: list[float] = []
+    delayed_hd_residuals: list[float] = []
+    t5_native_times: list[float] = []
+    eligible_prompt_windows = 0
     counts: Counter[str] = Counter()
     multiplicities: Counter[int] = Counter()
     alignment_candidates: list[float] = []
@@ -229,10 +418,16 @@ def run(args: argparse.Namespace) -> dict:
         if missing:
             raise ValueError("Missing ROOT branches: " + ", ".join(sorted(missing)))
         stop = min(tree.num_entries, args.entry_start + args.scan_windows)
+        has_t5 = "T5_hit_time" in tree.keys()
+        branches = list(REQUIRED) + (["T5_hit_time"] if has_t5 else [])
         with (args.output_dir / "bursts.csv").open("w", newline="", encoding="utf-8") as burst_file, \
              (args.output_dir / "gaps.csv").open("w", newline="", encoding="utf-8") as gap_file, \
              (args.output_dir / "t0_group_gaps.csv").open("w", newline="", encoding="utf-8") as t0_file, \
-             (args.output_dir / "alignment_candidates.csv").open("w", newline="", encoding="utf-8") as align_file:
+             (args.output_dir / "alignment_candidates.csv").open("w", newline="", encoding="utf-8") as align_file, \
+             (args.output_dir / "hodoscope_hits.csv").open("w", newline="", encoding="utf-8") as hd_file, \
+             (args.output_dir / "pmt_hd_timing_pairs.csv").open("w", newline="", encoding="utf-8") as pair_file, \
+             (args.output_dir / "delayed_candidates_no_veto.csv").open("w", newline="", encoding="utf-8") as candidate_file, \
+             (args.output_dir / "t5_hit_times.csv").open("w", newline="", encoding="utf-8") as t5_file:
             burst_writer = csv.DictWriter(burst_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number", "n_t0_groups",
                 "n_late_hd_hits", "n_late_hd_groups", "burst_index", "strongest",
@@ -246,12 +441,33 @@ def run(args: argparse.Namespace) -> dict:
             align_writer = csv.DictWriter(align_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number", "t0_ns",
                 "pmt_burst_ns", "pmt_minus_t0_ns", "n_pmt_bursts"))
+            hd_writer = csv.DictWriter(hd_file, fieldnames=(
+                "root_entry", "run_id", "event_number", "readout_number", "channel_id",
+                "hd_element", "corrected_tdc_time_ns", "earliest_t0_group_ns",
+                "time_from_earliest_t0_ns"))
+            pair_writer = csv.DictWriter(pair_file, fieldnames=(
+                "root_entry", "run_id", "event_number", "readout_number", "pair_kind",
+                "burst_index", "hd_element", "t0_group_index", "pmt_burst_ns", "hd_time_ns",
+                "pmt_minus_hd_ns", "prompt_t0_ns", "matched_t0_ns",
+                "pmt_delay_from_prompt_ns", "t0_gap_from_prompt_ns",
+                "pmt_delay_minus_t0_gap_ns", "residual_relative_to_prompt_same_hd_ns"))
+            candidate_writer = csv.DictWriter(candidate_file, fieldnames=(
+                "root_entry", "run_id", "event_number", "readout_number", "burst_index",
+                "prompt_burst_ns", "candidate_burst_ns", "delay_after_prompt_ns",
+                "candidate_n_hits", "candidate_n_pmts", "candidate_charge"))
+            t5_writer = csv.DictWriter(t5_file, fieldnames=(
+                "root_entry", "run_id", "event_number", "readout_number", "t5_hit_index",
+                "t5_hit_time_native_units"))
             burst_writer.writeheader()
             gap_writer.writeheader()
             t0_writer.writeheader()
             align_writer.writeheader()
+            hd_writer.writeheader()
+            pair_writer.writeheader()
+            candidate_writer.writeheader()
+            t5_writer.writeheader()
             for start in range(args.entry_start, stop, args.batch_windows):
-                batch = tree.arrays(REQUIRED, entry_start=start,
+                batch = tree.arrays(branches, entry_start=start,
                                     entry_stop=min(start + args.batch_windows, stop), library="ak")
                 for offset, event in enumerate(batch):
                     counts["raw_windows"] += 1
@@ -276,6 +492,30 @@ def run(args: argparse.Namespace) -> dict:
                                 "event_number": int(event["event_number"]),
                                 "readout_number": int(event["readout_number"]),
                                 "n_t0_groups": n_t0}
+                    if has_t5:
+                        for t5_index, value in enumerate(ak.to_list(event["T5_hit_time"])):
+                            if value is None or not np.isfinite(float(value)):
+                                continue
+                            value = float(value)
+                            t5_native_times.append(value)
+                            t5_writer.writerow({**{key: identity[key] for key in (
+                                "root_entry", "run_id", "event_number", "readout_number")},
+                                "t5_hit_index": t5_index, "t5_hit_time_native_units": value})
+                    beam_hits, _ = corrected_beamline_hits(event, tdc_time_mode=tdc_mode)
+                    earliest_t0 = t0_centers[0] if t0_centers else None
+                    for channel_id, hit_time in beam_hits:
+                        if channel_id not in HD_IDS:
+                            continue
+                        hd_id = HD_IDS[channel_id]
+                        relative_time = hit_time - earliest_t0 if earliest_t0 is not None else None
+                        hd_writer.writerow({**{key: identity[key] for key in (
+                            "root_entry", "run_id", "event_number", "readout_number")},
+                            "channel_id": channel_id, "hd_element": hd_id,
+                            "corrected_tdc_time_ns": hit_time,
+                            "earliest_t0_group_ns": earliest_t0,
+                            "time_from_earliest_t0_ns": relative_time})
+                        if relative_time is not None:
+                            hd_histograms[hd_id] += np.histogram([relative_time], bins=hd_edges)[0]
                     for i in range(1, n_t0):
                         gap = t0_centers[i] - t0_centers[i - 1]
                         t0_writer.writerow({**{key: identity[key] for key in (
@@ -298,6 +538,79 @@ def run(args: argparse.Namespace) -> dict:
                         counts["windows_with_multiple_bursts"] += 1
                     prompt_bursts = [burst for burst in bursts
                                      if prompt_min <= burst.center_ns < prompt_max]
+                    if len(prompt_bursts) == 1 and n_t0:
+                        prompt_burst = prompt_bursts[0]
+                        prompt_t0 = t0_centers[0]
+                        prompt_hd_by_id = {}
+                        for match in hd_matches_to_group(beam_hits, prompt_t0):
+                            channel_id, hd_id, hd_time, dt = match
+                            if (hd_id not in prompt_hd_by_id
+                                    or abs(dt) < abs(prompt_hd_by_id[hd_id][3])):
+                                prompt_hd_by_id[hd_id] = match
+                        if not prompt_hd_by_id:
+                            counts["unique_prompt_pmt_without_earliest_t0_hd_tag"] += 1
+                        for hd_id, (channel_id, _, hd_time, _) in prompt_hd_by_id.items():
+                            prompt_residual = prompt_burst.center_ns - hd_time
+                            prompt_pmt_hd_by_element[hd_id].append(prompt_residual)
+                            pair_writer.writerow({**{key: identity[key] for key in (
+                                "root_entry", "run_id", "event_number", "readout_number")},
+                                "pair_kind": "prompt_reference", "burst_index": bursts.index(prompt_burst),
+                                "hd_element": hd_id, "t0_group_index": 0,
+                                "pmt_burst_ns": prompt_burst.center_ns, "hd_time_ns": hd_time,
+                                "pmt_minus_hd_ns": prompt_residual, "prompt_t0_ns": prompt_t0,
+                                "matched_t0_ns": prompt_t0, "pmt_delay_from_prompt_ns": 0,
+                                "t0_gap_from_prompt_ns": 0, "pmt_delay_minus_t0_gap_ns": 0,
+                                "residual_relative_to_prompt_same_hd_ns": 0})
+                        later_groups = []
+                        if prompt_hd_by_id:
+                            eligible_prompt_windows += 1
+                            for burst_index, burst in enumerate(bursts):
+                                delay = burst.center_ns - prompt_burst.center_ns
+                                if not delayed_min <= delay <= delayed_max:
+                                    continue
+                                candidate_writer.writerow({**{key: identity[key] for key in (
+                                    "root_entry", "run_id", "event_number", "readout_number")},
+                                    "burst_index": burst_index,
+                                    "prompt_burst_ns": prompt_burst.center_ns,
+                                    "candidate_burst_ns": burst.center_ns,
+                                    "delay_after_prompt_ns": delay,
+                                    "candidate_n_hits": burst.n_hits,
+                                    "candidate_n_pmts": burst.n_pmts,
+                                    "candidate_charge": burst.charge})
+                            for group_index, group_t0 in enumerate(t0_centers[1:], start=1):
+                                later_groups.append((group_index, group_t0,
+                                                     hd_matches_to_group(beam_hits, group_t0)))
+                        for burst in bursts:
+                            delay = burst.center_ns - prompt_burst.center_ns
+                            if not delayed_min <= delay <= delayed_max:
+                                continue
+                            for group_index, group_t0, late_matches in later_groups:
+                                t0_gap = group_t0 - prompt_t0
+                                delay_minus_t0 = delay - t0_gap
+                                for _, hd_id, hd_time, _ in late_matches:
+                                    direct_residual = burst.center_ns - hd_time
+                                    delayed_pmt_hd_by_element[hd_id].append(direct_residual)
+                                    delayed_hd_residual = None
+                                    if hd_id in prompt_hd_by_id:
+                                        prompt_hd = prompt_hd_by_id[hd_id][2]
+                                        delayed_hd_residual = direct_residual - (
+                                            prompt_burst.center_ns - prompt_hd)
+                                        delayed_relative_by_element[hd_id].append(delayed_hd_residual)
+                                        delayed_t0_residuals.append(delay_minus_t0)
+                                        delayed_hd_residuals.append(delayed_hd_residual)
+                                    pair_writer.writerow({**{key: identity[key] for key in (
+                                        "root_entry", "run_id", "event_number", "readout_number")},
+                                        "pair_kind": "delayed_candidate_later_t0_hd",
+                                        "burst_index": bursts.index(burst), "hd_element": hd_id,
+                                        "t0_group_index": group_index,
+                                        "pmt_burst_ns": burst.center_ns, "hd_time_ns": hd_time,
+                                        "pmt_minus_hd_ns": direct_residual,
+                                        "prompt_t0_ns": prompt_t0, "matched_t0_ns": group_t0,
+                                        "pmt_delay_from_prompt_ns": delay,
+                                        "t0_gap_from_prompt_ns": t0_gap,
+                                        "pmt_delay_minus_t0_gap_ns": delay_minus_t0,
+                                        "residual_relative_to_prompt_same_hd_ns":
+                                            delayed_hd_residual if delayed_hd_residual is not None else ""})
                     if tdc_mode == "reference" and n_t0 == 1 and len(prompt_bursts) == 1:
                         candidate = prompt_bursts[0].center_ns - t0_centers[0]
                         alignment_candidates.append(candidate)
@@ -342,14 +655,56 @@ def run(args: argparse.Namespace) -> dict:
                     "min_pmts", "min_separation_ns", "max_bursts", "hist_bin_ns")},
                 "interpretation": "Bursts are time-density candidates, not particle IDs. Gaps from one window are correlated; TDC references correct only within the beamline clock, not against WCTE PMT time.",
                 "t0_group_gap_count": int(t0_hist.sum()),
+                "hodoscope_hit_counts_by_element": {
+                    str(hd_id): int(values.sum()) for hd_id, values in hd_histograms.items()},
+                "hodoscope_time_origin": "Corrected HD times are relative to the earliest T0 group in each readout; this is not an alignment to the WCTE PMT clock.",
+                "prompt_pmt_hd_pair_count": int(sum(map(len, prompt_pmt_hd_by_element.values()))),
+                "delayed_pmt_later_hd_pair_count": int(sum(map(len, delayed_pmt_hd_by_element.values()))),
+                "delayed_same_hd_prompt_relative_pair_count": int(sum(map(len, delayed_relative_by_element.values()))),
+                "t5_branch_present": has_t5,
+                "t5_hit_count": len(t5_native_times),
+                "t5_time_units": "native ROOT branch units; not aligned or assumed to be ns",
+                "delayed_candidate_window_ns": [delayed_min, delayed_max],
+                "diagnostic_veto_comparison": None,
             }
             (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    summary["diagnostic_veto_comparison"] = make_diagnostic_veto_comparison(
+        args.output_dir, prompt_pmt_hd_by_element, eligible_prompt_windows,
+        t0_window_ns=veto_t0_window, pmt_hd_window_ns=veto_pmt_hd_window,
+        bin_ns=veto_bin, delay_min_ns=delayed_min, delay_max_ns=delayed_max)
+    summary["settings"].update({
+        "delayed_min_ns": delayed_min, "delayed_max_ns": delayed_max,
+        "veto_t0_window_ns": veto_t0_window,
+        "veto_pmt_hd_window_ns": veto_pmt_hd_window,
+        "veto_bin_ns": veto_bin})
+    (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     plot_histograms(args.output_dir / "burst_gap_histograms.png", histograms, edges,
                     counts["selected_windows"], counts["windows_with_multiple_bursts"])
     pmt_consecutive = sum((histograms[("consecutive", group)] for group in (
         "one_t0_group", "multiple_t0_groups", "no_t0")), np.zeros(len(edges) - 1, dtype=np.int64))
     plot_t0_comparison(args.output_dir / "t0_vs_pmt_gap_histograms.png",
                        t0_hist, pmt_consecutive, edges)
+    plot_hodoscope_times(args.output_dir / "hodoscope_hit_times.png", hd_histograms,
+                         hd_edges, tdc_mode)
+    plot_hd_residuals(args.output_dir / "prompt_pmt_hd_residuals_by_element.png",
+                      prompt_pmt_hd_by_element,
+                      title="Prompt PMT burst time − earliest-T0-matched prompt HD time",
+                      xlabel="Prompt PMT − prompt HD time (ns)",
+                      limits=(-500, max(args.max_ns, prompt_max) + 500))
+    plot_hd_residuals(args.output_dir / "delayed_pmt_later_hd_residuals_by_element.png",
+                      delayed_pmt_hd_by_element,
+                      title="Delayed PMT burst time − later-T0-matched HD time",
+                      xlabel="Delayed PMT − later HD time (ns)",
+                      limits=(-500, max(args.max_ns, delayed_max) + 500))
+    plot_hd_residuals(args.output_dir / "delayed_pmt_hd_residuals_relative_prompt.png",
+                      delayed_relative_by_element,
+                      title="Delayed PMT–HD residual minus same-event prompt residual",
+                      xlabel="Delayed-minus-prompt PMT–HD residual (ns)",
+                      limits=(-1500, 1500))
+    plot_delayed_match_map(args.output_dir / "delayed_pmt_t0_hd_residual_map.png",
+                           delayed_t0_residuals, delayed_hd_residuals)
+    plot_t5_native_times(args.output_dir / "t5_hit_times_native.png",
+                         t5_native_times, has_t5)
     fig, axis = plt.subplots(figsize=(9, 4.5), constrained_layout=True)
     if alignment_candidates:
         axis.hist(alignment_candidates, bins=100, histtype="step", color="tab:green")
@@ -370,6 +725,20 @@ def run(args: argparse.Namespace) -> dict:
         print(f"Empirical alignment candidates: {len(alignment_candidates):,}; "
               "inspect alignment_candidates.png before using an offset")
     print(f"Results: {args.output_dir}")
+    veto = summary["diagnostic_veto_comparison"]
+    print("HD/WCTE timing diagnostics:")
+    for filename in (
+            "prompt_pmt_hd_residuals_by_element.png",
+            "delayed_pmt_later_hd_residuals_by_element.png",
+            "delayed_pmt_hd_residuals_relative_prompt.png",
+            "delayed_pmt_t0_hd_residual_map.png",
+            "delayed_candidate_no_veto_vs_late_hd_veto.png"):
+        print(f"  {args.output_dir / filename}")
+    print("Diagnostic later-T0+HD comparison (not an applied/validated cut): "
+          f"{veto['no_veto_delayed_candidates']:,} no-veto candidates; "
+          f"{veto['vetoed_candidates']:,} matched; "
+          f"{veto['remaining_candidates']:,} retained; "
+          f"{veto['eligible_prompt_tagged_readouts']:,} prompt-tagged readouts")
     return summary
 
 
@@ -394,6 +763,16 @@ def main() -> int:
                         help="Subtract TDC references 31/46; raw is for comparison only")
     parser.add_argument("--prompt-min-ns", type=float, default=1500)
     parser.add_argument("--prompt-max-ns", type=float, default=1900)
+    parser.add_argument("--delayed-min-ns", type=float, default=500,
+                        help="Minimum delayed PMT burst delay after the unique prompt burst")
+    parser.add_argument("--delayed-max-ns", type=float, default=7500,
+                        help="Maximum delayed PMT burst delay after the unique prompt burst")
+    parser.add_argument("--veto-t0-window-ns", type=float, default=100,
+                        help="Exploratory tolerance for matching PMT delay to a later T0-group gap")
+    parser.add_argument("--veto-pmt-hd-window-ns", type=float, default=100,
+                        help="Exploratory tolerance around the prompt PMT-HD residual for that HD element")
+    parser.add_argument("--veto-bin-ns", type=float, default=25,
+                        help="Histogram bin width for no-veto/vetoed/retained comparison")
     args = parser.parse_args()
     if (args.entry_start < 0 or args.scan_windows < 1 or args.batch_windows < 1
             or args.max_ns <= args.min_ns or args.min_ns < 0 or args.bin_ns <= 0
@@ -402,6 +781,10 @@ def main() -> int:
         parser.error("Require nonnegative entry/time starts and positive window, bin, threshold and scan settings")
     if args.prompt_max_ns <= args.prompt_min_ns:
         parser.error("Prompt maximum must exceed prompt minimum")
+    if args.delayed_max_ns <= args.delayed_min_ns:
+        parser.error("Delayed maximum must exceed delayed minimum")
+    if min(args.veto_t0_window_ns, args.veto_pmt_hd_window_ns, args.veto_bin_ns) <= 0:
+        parser.error("Diagnostic veto windows and histogram bin width must be positive")
     run(args)
     return 0
 

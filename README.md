@@ -124,6 +124,31 @@ one T0 group and one PMT burst in the configurable 1500–1900 ns prompt
 range. Inspect that distribution and its stability across run segments
 before using its median for `--tdc-to-pmt-offset-ns`. The empirical offset
 includes beam-particle and light-propagation delays.
+The run also writes `hodoscope_hit_times.png` (each HD element relative to
+the earliest T0 group, i.e. intra-beamline timing only),
+`prompt_pmt_hd_residuals_by_element.png`,
+`delayed_pmt_later_hd_residuals_by_element.png`,
+`delayed_pmt_hd_residuals_relative_prompt.png`, and
+`delayed_pmt_t0_hd_residual_map.png`. The corresponding rows are in
+`hodoscope_hits.csv` and `pmt_hd_timing_pairs.csv`. The map compares the
+delayed-PMT minus prompt-PMT time with the later-T0 minus prompt-T0 gap, and
+compares the delayed PMT–HD residual with the same-event prompt residual for
+that HD element. `t5_hit_times_native.png` and `t5_hit_times.csv` are also
+written if available, but T5 remains in native branch units and is not
+aligned to either clock.
+
+`delayed_candidate_no_veto_vs_late_hd_veto.png` compares delayed bursts
+before/after a diagnostic candidate-level later-T0+HD match; candidate rows
+are in `delayed_candidates_no_veto.csv` and
+`delayed_candidates_veto_comparison.csv`. The default comparison requires
+both the PMT-delay minus later-T0-gap residual and PMT–HD residual minus the
+run-level prompt median for that HD element to be within ±100 ns. Change
+these exploratory windows with `--veto-t0-window-ns` and
+`--veto-pmt-hd-window-ns`. This veto is not applied to the original burst
+histograms or input data; it is a diagnostic only, not a validated cut or
+proof that a particular PMT burst came from a particular gamma. The script
+prints all diagnostic figure paths and the no-veto/matched/retained counts
+at completion.
 The beamline TDC and WCTE PMT clocks remain unaligned, and a missing later
 T0 group does not prove that a later PMT burst was not beam-related. Gap
 peaks alone cannot assign individual particles or distinguish delayed

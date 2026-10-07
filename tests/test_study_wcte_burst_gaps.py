@@ -33,6 +33,7 @@ def test_root_burst_gap_outputs(tmp_path):
             "hit_pmt_position_ids": "var * int32",
             "beamline_pmt_tdc_ids": "var * int32",
             "beamline_pmt_tdc_times": "var * float64",
+            "T5_hit_time": "var * float64",
         })
         tree.extend({
             "run_id": [1827, 1827], "event_number": [40, 41],
@@ -43,8 +44,10 @@ def test_root_burst_gap_outputs(tmp_path):
             "hit_mpmt_slot_ids": ak.Array([[1] * 8, [1] * 8]),
             "hit_pmt_position_ids": ak.Array([list(range(8)), list(range(8))]),
             "beamline_pmt_tdc_ids": ak.Array([[31, 46, 0, 0, 8, 32, 32], [31, 46, 0, 8, 11, 32]]),
-            "beamline_pmt_tdc_times": ak.Array([[100, 200, 110, 410, 120, 235, 535],
+            "beamline_pmt_tdc_times": ak.Array([[100, 200, 110, 2430, 120, 160, 2480],
                                                    [100, 200, 110, 120, 125, 235]]),
+            "T5_hit_time": ak.Array([[12.5, 18.0], [20.0]]),
+            "T5_hit_time": ak.Array([[12.5, 18.0], [20.0]]),
         })
     output = tmp_path / "gaps"
     args = argparse.Namespace(input_root=root_path, output_dir=output, selection="tagged",
@@ -63,8 +66,32 @@ def test_root_burst_gap_outputs(tmp_path):
     with (output / "t0_group_gaps.csv").open(newline="") as handle:
         t0_gaps = list(csv.DictReader(handle))
     assert len(t0_gaps) == 1
-    assert float(t0_gaps[0]["gap_ns"]) == 300
+    assert float(t0_gaps[0]["gap_ns"]) == 2320
     assert summary["tdc_time_mode"] == "reference"
     assert summary["counts"].get("windows_missing_tdc_ref31", 0) == 0
     assert (output / "burst_gap_histograms.png").stat().st_size > 0
     assert (output / "t0_vs_pmt_gap_histograms.png").stat().st_size > 0
+    assert (output / "hodoscope_hit_times.png").stat().st_size > 0
+    assert (output / "prompt_pmt_hd_residuals_by_element.png").stat().st_size > 0
+    assert (output / "delayed_pmt_later_hd_residuals_by_element.png").stat().st_size > 0
+    assert (output / "delayed_pmt_hd_residuals_relative_prompt.png").stat().st_size > 0
+    assert (output / "delayed_pmt_t0_hd_residual_map.png").stat().st_size > 0
+    assert (output / "t5_hit_times_native.png").stat().st_size > 0
+    assert summary["prompt_pmt_hd_pair_count"] == 1
+    assert summary["delayed_pmt_later_hd_pair_count"] == 1
+    assert summary["delayed_same_hd_prompt_relative_pair_count"] == 1
+    veto_summary = summary["diagnostic_veto_comparison"]
+    assert veto_summary["no_veto_delayed_candidates"] == 1
+    assert veto_summary["vetoed_candidates"] == 1
+    assert veto_summary["remaining_candidates"] == 0
+    assert summary["t5_branch_present"] is True
+    assert summary["t5_hit_count"] == 2
+    with (output / "pmt_hd_timing_pairs.csv").open(newline="") as handle:
+        pairs = list(csv.DictReader(handle))
+    assert [row["pair_kind"] for row in pairs] == [
+        "prompt_reference", "delayed_candidate_later_t0_hd"]
+    assert np.isclose(float(pairs[1]["pmt_delay_minus_t0_gap_ns"]), 0, atol=10)
+    with (output / "t5_hit_times.csv").open(newline="") as handle:
+        t5_hits = list(csv.DictReader(handle))
+    assert [row["t5_hit_time_native_units"] for row in t5_hits] == ["12.5", "18.0"]
+    assert (output / "delayed_candidate_no_veto_vs_late_hd_veto.png").stat().st_size > 0
