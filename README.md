@@ -243,6 +243,51 @@ python3 scripts/fit_wcte_delayed_bursts.py \
   --output-dir outputs/R1827_npz_lifetime_full
 ```
 
+### Scan delayed-burst hit-count cuts
+
+`scripts/scan_wcte_delayed_hit_cuts.py` compares the prompt-relative delayed
+burst timing under inclusive hit-count ceilings. It reads the `bursts.csv`
+from the NPZ burst study and does not require another ROOT scan or NPZ
+conversion. Its `n_hits` is the number of digit hits inside the burst finder's
+local density window (50 ns by default), not necessarily the total hit count
+of a simulated Michel cluster. Check the definitions match before interpreting
+a threshold such as 300 as a data/simulation comparison.
+
+For the complete Run 1827 v2 conversion, first create the burst table:
+
+```bash
+BASE=/eos/experiment/wcte/data/2025_commissioning/processed_offline_data/production_v1_0
+python3 scripts/study_wcte_npz_burst_gaps.py \
+  "$BASE/1827/converted_npz" \
+  --output-dir outputs/R1827_npz_burst_gaps_full
+```
+
+Then scan the hit ceilings:
+
+```bash
+python3 scripts/scan_wcte_delayed_hit_cuts.py \
+  outputs/R1827_npz_burst_gaps_full/bursts.csv \
+  --output-dir outputs/R1827_npz_delayed_hit_cut_scan \
+  --max-delayed-hits 100 150 200 300 400
+```
+
+The scan requires exactly one prompt burst in 1500–1900 ns per readout and
+considers bursts 500–7500 ns after it. These ranges and the 330 ns comb period
+are exploratory defaults and can be changed with command-line options.
+`hit_cut_timing_overlay.png` compares delayed-candidate rates per prompt
+readout, `hit_cut_metrics.png` shows retained counts and bunch-phase contrast,
+and the CSV/JSON files preserve the values and settings. A fixed 2.197 µs
+exponential plus comb fit is included when there are enough late-sideband
+bursts, but its improvement is descriptive, not a significance estimate or a
+Michel observation. Each hit cut estimates its phase template from its own
+late sideband.
+
+If an end-of-spill, beam-free ROOT-entry interval is established separately,
+restrict this post-processing with `--root-entry-start FIRST
+--root-entry-stop STOP` (`STOP` is exclusive). Entry numbers alone do not
+identify the end of a spill. The window-level tagged selection does not assign
+a candidate to a specific bunch; T5 association also remains a separate check.
+
 # Installation
 
 Installation:
