@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 import matplotlib
+from matplotlib.colors import LogNorm
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ def read_prompt_delayed(path: Path, *, prompt_min_ns: float, prompt_max_ns: floa
                         delayed_min_pmts: int, delayed_min_hits: int,
                         root_entry_start: int | None, root_entry_stop: int | None
                         ) -> tuple[list[dict], dict]:
-    """Return all delayed bursts in windows with exactly one accepted prompt."""
+    """Return delayed bursts and event-level later-hodoscope match annotations."""
     delayed = []
     counts = {"input_windows_with_bursts": 0, "windows_without_unique_prompt": 0,
               "unique_prompt_windows": 0, "windows_with_delayed_candidates": 0,
@@ -69,10 +70,12 @@ def read_prompt_delayed(path: Path, *, prompt_min_ns: float, prompt_max_ns: floa
     current_key = None
     current_bursts: list[dict] = []
     previous_entry = -1
+    has_late_hd_info = False
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         if not reader.fieldnames or not REQUIRED.issubset(reader.fieldnames):
             raise ValueError(f"{path} is not a study_wcte_burst_gaps.py bursts.csv")
+        has_late_hd_info = {"n_late_hd_hits", "n_late_hd_groups"}.issubset(reader.fieldnames)
         for row in reader:
             entry = int(row["root_entry"])
             if entry < previous_entry:
@@ -97,9 +100,14 @@ def read_prompt_delayed(path: Path, *, prompt_min_ns: float, prompt_max_ns: floa
                 "center_ns": center,
                 "n_hits": int(row["n_hits"]),
                 "n_pmts": int(row["n_pmts"]),
+                "n_late_hd_hits": (int(row["n_late_hd_hits"])
+                                    if has_late_hd_info else None),
+                "n_late_hd_groups": (int(row["n_late_hd_groups"])
+                                     if has_late_hd_info else None),
             })
     process_window(current_bursts)
     counts["delayed_candidates_before_upper_hit_cut"] = len(delayed)
+    counts["later_hodoscope_columns_available"] = has_late_hd_info
     return delayed, counts
 
 
@@ -127,7 +135,6 @@ def run(args: argparse.Namespace) -> dict:
                       args.bin_ns)
     if len(edges) < 4 or not np.isclose(edges[-1], args.max_delay_ns):
         raise ValueError("Delay range must contain at least 3 whole, equal-width bins")
-    delays_all = np.asarray([b["delay_ns"] for b in bursts])
     results = []
     histograms: dict[int, np.ndarray] = {}
     for cut in cuts:
@@ -149,14 +156,10 @@ def run(args: argparse.Namespace) -> dict:
         elif len(delays):
             fit_error = (f"late-sideband template has {len(sideband)} bursts; "
                          f"need {args.min_template_bursts}")
-        phase_profile = None
-        if len(delays):
-            phase_profile, _ = np.histogram(np.mod(delays, args.period_ns),
-                                             bins=np.linspace(0, args.period_ns,
-                                                              args.phase_bins + 1))
-        phase_mean = float(phase_profile.mean()) if phase_profile is not None else 0.0
-        phase_contrast = (float((phase_profile.max() - phase_profile.min()) / phase_mean)
-                          if phase_mean > 0 else None)
+        late_hd = ([b for b in selected if b["n_late_hd_hits"] > 0]
+                   if counts["later_hodoscope_columns_available"] else None)
+        no_late_hd = ([b for b in selected if b["n_late_hd_hits"] == 0]
+                      if counts["later_hodoscope_columns_available"] else None)
         result = {
             "max_delayed_burst_hits_inclusive": cut,
             "delayed_candidates": len(selected),
@@ -165,7 +168,10 @@ def run(args: argparse.Namespace) -> dict:
                 len(selected) / counts["unique_prompt_windows"]
                 if counts["unique_prompt_windows"] else None),
             "fraction_of_uncut_candidates": len(selected) / len(bursts),
-            "phase_peak_to_trough_over_mean": phase_contrast,
+            "candidates_with_later_hd_t0_match": len(late_hd) if late_hd is not None else None,
+            "candidates_without_later_hd_t0_match": len(no_late_hd) if no_late_hd is not None else None,
+            "fraction_rejected_by_later_hd_veto": (
+                len(late_hd) / len(selected) if late_hd is not None and selected else None),
             "late_template_bursts": len(sideband),
             "fit": fit,
             "fit_note": fit_error,
@@ -189,20 +195,49 @@ def run(args: argparse.Namespace) -> dict:
     fig.savefig(args.output_dir / "hit_cut_timing_overlay.png", dpi=170)
     plt.close(fig)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.7), constrained_layout=True)
-    x = np.arange(len(results))
-    axes[0].bar(x, [r["delayed_candidates"] for r in results], color="tab:blue")
-    axes[0].set(ylabel="Delayed candidates", title="Candidates retained")
-    axes[1].plot(x, [r["phase_peak_to_trough_over_mean"] or 0 for r in results],
-                 "o-", color="tab:purple")
-    axes[1].set(ylabel="(phase max − min) / phase mean",
-                title=f"Bunch-phase contrast (period={args.period_ns:g} ns)")
-    for axis in axes:
-        axis.set_xticks(x, [str(cut) for cut in cuts])
-        axis.set_xlabel("Inclusive maximum digit hits per delayed burst")
-        axis.grid(alpha=0.2)
+    all_delays = np.asarray([b["delay_ns"] for b in bursts])
+    all_nhits = np.asarray([b["n_hits"] for b in bursts])
+    nhit_bin = max(1, args.nhits_bin)
+    nhit_edges = np.arange(0, max(nhit_bin, int(all_nhits.max()) + nhit_bin), nhit_bin)
+    if nhit_edges[-1] <= all_nhits.max():
+        nhit_edges = np.append(nhit_edges, nhit_edges[-1] + nhit_bin)
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.2), constrained_layout=True)
+    nhit_hist, _ = np.histogram(all_nhits, bins=nhit_edges)
+    axes[0].stairs(nhit_hist, nhit_edges, color="black", linewidth=1.5)
+    for cut in cuts:
+        axes[0].axvline(cut, color="tab:blue", alpha=0.5, linestyle="--")
+    axes[0].set(xlabel="Digit hits in delayed burst (local burst window)",
+                ylabel="Delayed bursts / bin", title="Delayed-burst hit-count distribution")
+    hist2d = axes[1].hist2d(all_delays, all_nhits, bins=[edges, nhit_edges],
+                            norm=LogNorm(vmin=1), cmap="viridis")
+    for cut in cuts:
+        axes[1].axhline(cut, color="white", alpha=0.65, linestyle="--", linewidth=0.9)
+    axes[1].set(xlabel="Delay after unique prompt burst (ns)",
+                ylabel="Digit hits in delayed burst", title="Delayed-burst hits versus time")
+    fig.colorbar(hist2d[3], ax=axes[1], label="Delayed bursts / bin (log scale)")
     fig.savefig(args.output_dir / "hit_cut_metrics.png", dpi=170)
     plt.close(fig)
+
+    if counts["later_hodoscope_columns_available"]:
+        compare_cut = args.hd_compare_cut
+        base = [b for b in bursts if b["n_hits"] <= compare_cut]
+        no_hd = [b for b in base if b["n_late_hd_hits"] == 0]
+        has_hd = [b for b in base if b["n_late_hd_hits"] > 0]
+        fig, axis = plt.subplots(figsize=(11, 5.8), constrained_layout=True)
+        for sample, label, color in (
+                (base, "All candidates", "black"),
+                (no_hd, "No later HD–T0 match", "tab:blue"),
+                (has_hd, "Later HD–T0 match present", "tab:orange")):
+            hist = np.histogram([b["delay_ns"] for b in sample], bins=edges)[0]
+            axis.stairs(hist / prompt_denominator, edges, label=f"{label} (n={len(sample):,})",
+                        color=color, linewidth=1.5)
+        axis.set(xlabel="Delay after unique prompt PMT burst (ns)",
+                 ylabel="Delayed candidates / prompt window / bin",
+                 title=f"Effect of later hodoscope activity (≤{compare_cut} hits)")
+        axis.grid(alpha=0.2)
+        axis.legend()
+        fig.savefig(args.output_dir / "late_hd_veto_comparison.png", dpi=170)
+        plt.close(fig)
 
     with (args.output_dir / "hit_cut_histograms.csv").open(
             "w", newline="", encoding="utf-8") as handle:
@@ -214,7 +249,9 @@ def run(args: argparse.Namespace) -> dict:
             "w", newline="", encoding="utf-8") as handle:
         fields = ("max_delayed_burst_hits_inclusive", "delayed_candidates", "candidate_windows",
                   "candidate_rate_per_unique_prompt_window", "fraction_of_uncut_candidates",
-                  "phase_peak_to_trough_over_mean", "late_template_bursts")
+                  "candidates_with_later_hd_t0_match",
+                  "candidates_without_later_hd_t0_match",
+                  "fraction_rejected_by_later_hd_veto", "late_template_bursts")
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows({key: result[key] for key in fields} for result in results)
@@ -230,6 +267,8 @@ def run(args: argparse.Namespace) -> dict:
             "inclusive_max_delayed_burst_hits": cuts,
             "histogram_bin_ns": args.bin_ns, "comb_period_ns": args.period_ns,
             "fixed_lifetime_ns": args.lifetime_ns,
+            "nhits_histogram_bin": args.nhits_bin,
+            "hd_comparison_inclusive_hit_cut": args.hd_compare_cut,
             "phase_bins": args.phase_bins,
             "late_template_range_ns": [args.template_min_ns, args.template_max_ns],
             "root_entry_range": [args.root_entry_start, args.root_entry_stop],
@@ -238,9 +277,12 @@ def run(args: argparse.Namespace) -> dict:
         "interpretation": (
             "Exploratory only. The hit ceiling is applied to each delayed burst's local "
             "digit-hit count; it does not establish that the burst is a Michel positron. "
-            "Comb phase contrast and fixed-lifetime fit improvements are descriptive, "
-            "not significance estimates. This burst count may not match simulation's "
-            "total delayed-cluster hit definition. End-of-spill beam-free selection "
+            "Fixed-lifetime fit improvements are descriptive, not significance estimates. "
+            "This burst count may not match simulation's "
+            "total delayed-cluster hit definition. A later HD–T0 match flags a readout "
+            "with hodoscope activity compatible with a later T0 group; it indicates "
+            "charged beam activity, not a gamma. It is an exploratory event-level veto, "
+            "not a candidate-to-bunch assignment. End-of-spill beam-free selection "
             "requires a validated spill/time selection and is not inferred here."),
     }
     (args.output_dir / "summary.json").write_text(
@@ -249,8 +291,10 @@ def run(args: argparse.Namespace) -> dict:
           f"uncut delayed candidates: {len(bursts):,}")
     for result in results:
         print(f"≤{result['max_delayed_burst_hits_inclusive']} hits: "
-              f"{result['delayed_candidates']:,} candidates, "
-              f"phase contrast={result['phase_peak_to_trough_over_mean']}")
+              f"{result['delayed_candidates']:,} candidates")
+    if not counts["later_hodoscope_columns_available"]:
+        print("No later-HD columns in input CSV; rerun the updated NPZ burst study "
+              "to create the late_hd_veto_comparison.png")
     print(f"Results: {args.output_dir}")
     return summary
 
@@ -270,6 +314,10 @@ def main() -> int:
     parser.add_argument("--max-delay-ns", type=float, default=7500)
     parser.add_argument("--min-delayed-pmts", type=int, default=10)
     parser.add_argument("--min-delayed-hits", type=int, default=1)
+    parser.add_argument("--nhits-bin", type=int, default=10,
+                        help="digit-hit width for the multiplicity histogram and density plot")
+    parser.add_argument("--hd-compare-cut", type=int, default=300,
+                        help="hit ceiling used for the later-hodoscope comparison plot")
     parser.add_argument("--bin-ns", type=float, default=25)
     parser.add_argument("--period-ns", type=float, default=330)
     parser.add_argument("--lifetime-ns", type=float, default=2196.9811)
@@ -281,6 +329,8 @@ def main() -> int:
     parser.add_argument("--root-entry-stop", type=int,
                         help="exclusive stop entry, for a pre-identified run segment")
     args = parser.parse_args()
+    if args.nhits_bin < 1 or args.hd_compare_cut < 1:
+        parser.error("--nhits-bin and --hd-compare-cut must be positive")
     run(args)
     return 0
 

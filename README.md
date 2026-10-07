@@ -253,6 +253,17 @@ local density window (50 ns by default), not necessarily the total hit count
 of a simulated Michel cluster. Check the definitions match before interpreting
 a threshold such as 300 as a data/simulation comparison.
 
+The current NPZ burst study also writes `hodoscope_hits.csv` and
+`hodoscope_time_histograms.png`. The 3×5 plot shows each HD element's
+reference-corrected hit time relative to the earliest T0 group. Reference
+channels 31 and 46 are subtracted separately; no additional inter-bank timing
+offset is applied, so inspect the element panels as timing diagnostics rather
+than assuming their peaks share a calibrated origin. The burst table records
+per-readout counts of HD hits compatible with T0 groups after the earliest
+group. An optional comparison can show how excluding those readouts changes
+the delayed spectrum. Such an HD match flags later charged-beam activity; a
+neutral gamma itself does not make an HD hit.
+
 For the complete Run 1827 v2 conversion, first create the burst table:
 
 ```bash
@@ -275,12 +286,20 @@ The scan requires exactly one prompt burst in 1500–1900 ns per readout and
 considers bursts 500–7500 ns after it. These ranges and the 330 ns comb period
 are exploratory defaults and can be changed with command-line options.
 `hit_cut_timing_overlay.png` compares delayed-candidate rates per prompt
-readout, `hit_cut_metrics.png` shows retained counts and bunch-phase contrast,
-and the CSV/JSON files preserve the values and settings. A fixed 2.197 µs
+readout; `hit_cut_metrics.png` now contains the delayed-burst hit-count
+histogram and a time-versus-hit-count density plot. When the burst CSV includes
+the new HD columns, `late_hd_veto_comparison.png` compares the ≤300-hit delayed
+spectrum before and after removing readouts with a later HD–T0 match. The
+CSV/JSON files preserve the values and settings. A fixed 2.197 µs
 exponential plus comb fit is included when there are enough late-sideband
 bursts, but its improvement is descriptive, not a significance estimate or a
 Michel observation. Each hit cut estimates its phase template from its own
 late sideband.
+
+After pulling the updated code, rerun `study_wcte_npz_burst_gaps.py` on the
+existing converted NPZ directory before running the scan so `bursts.csv`
+contains the later-HD columns. The NPZ conversion itself does not need to be
+repeated.
 
 If an end-of-spill, beam-free ROOT-entry interval is established separately,
 restrict this post-processing with `--root-entry-start FIRST

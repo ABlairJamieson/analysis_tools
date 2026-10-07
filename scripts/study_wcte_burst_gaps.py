@@ -91,7 +91,8 @@ def t0_group_centers(t0_times: list[float], separation_ns: float = 50) -> list[f
     return [float(np.median(group)) for group in np.split(ordered, split_at)]
 
 
-def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, bool, list[float], tuple]:
+def corrected_beamline_hits(event, *, tdc_time_mode: str = "reference"
+                            ) -> tuple[list[tuple[int, float]], tuple[float | None, float | None]]:
     ids = ak.to_list(event["beamline_pmt_tdc_ids"])
     times = ak.to_list(event["beamline_pmt_tdc_times"])
     if len(ids) != len(times):
@@ -99,8 +100,13 @@ def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, b
     raw_hits = [(int(cid), float(time)) for cid, time in zip(ids, times)
                 if time is not None and np.isfinite(float(time))]
     corrected, refs = correct_tdc_hits(raw_hits, mode=tdc_time_mode)
-    hits = [(hit.channel_id, hit.corrected_ns) for hit in corrected
+    hits = [(hit.channel_id, float(hit.corrected_ns)) for hit in corrected
             if hit.corrected_ns is not None and hit.channel_id not in REFERENCE_IDS]
+    return hits, refs
+
+
+def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, bool, list[float], tuple]:
+    hits, refs = corrected_beamline_hits(event, tdc_time_mode=tdc_time_mode)
     channels = {cid for cid, _ in hits}
     t0 = [time for cid, time in hits if cid in T0_IDS]
     beam_ok = bool(channels & T0_IDS) and T2_ID in channels and HC2_ID not in channels
@@ -115,6 +121,31 @@ def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, b
                 tagged = True
                 break
     return beam_ok, tagged, t0_group_centers(t0), refs
+
+
+def later_hodoscope_match_counts(event, t0_centers: list[float], *,
+                                tdc_time_mode: str = "reference") -> tuple[int, int]:
+    """Count HD hits and later T0 groups with a compatible HD hit.
+
+    Compatibility uses the same channel-dependent T0-relative timing windows
+    as ``beamline_status``. The first T0 group is treated as the triggered
+    bunch; later groups with matching HD hits flag additional charged beam
+    activity in that readout. This is not a gamma tag.
+    """
+    if len(t0_centers) < 2:
+        return 0, 0
+    hits, _ = corrected_beamline_hits(event, tdc_time_mode=tdc_time_mode)
+    hits = [(cid, time) for cid, time in hits if cid in HD_IDS]
+    matched_hit_indices: set[int] = set()
+    matched_group_indices: set[int] = set()
+    for group_index, t0_time in enumerate(t0_centers[1:], start=1):
+        for hit_index, (channel_id, hd_time) in enumerate(hits):
+            hd = HD_IDS[channel_id]
+            lo, hi = (-50, 100) if hd in (0, 1, 2, 3, 8, 9, 10, 11) else (80, 200)
+            if lo < hd_time - t0_time < hi:
+                matched_hit_indices.add(hit_index)
+                matched_group_indices.add(group_index)
+    return len(matched_hit_indices), len(matched_group_indices)
 
 
 def _hits(event) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -204,7 +235,8 @@ def run(args: argparse.Namespace) -> dict:
              (args.output_dir / "alignment_candidates.csv").open("w", newline="", encoding="utf-8") as align_file:
             burst_writer = csv.DictWriter(burst_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number", "n_t0_groups",
-                "burst_index", "strongest", *Burst.__dataclass_fields__))
+                "n_late_hd_hits", "n_late_hd_groups", "burst_index", "strongest",
+                *Burst.__dataclass_fields__))
             gap_writer = csv.DictWriter(gap_file, fieldnames=(
                 "root_entry", "run_id", "event_number", "readout_number", "n_t0_groups",
                 "kind", "from_burst", "to_burst", "gap_ns"))
@@ -237,6 +269,8 @@ def run(args: argparse.Namespace) -> dict:
                         continue
                     counts["selected_windows"] += 1
                     n_t0 = len(t0_centers)
+                    n_late_hd_hits, n_late_hd_groups = later_hodoscope_match_counts(
+                        event, t0_centers, tdc_time_mode=tdc_mode)
                     entry = start + offset
                     identity = {"root_entry": entry, "run_id": int(event["run_id"]),
                                 "event_number": int(event["event_number"]),
@@ -275,6 +309,8 @@ def run(args: argparse.Namespace) -> dict:
                     group = "no_t0" if n_t0 == 0 else "one_t0_group" if n_t0 == 1 else "multiple_t0_groups"
                     for i, burst in enumerate(bursts):
                         burst_writer.writerow({**identity, "burst_index": i,
+                                               "n_late_hd_hits": n_late_hd_hits,
+                                               "n_late_hd_groups": n_late_hd_groups,
                                                "strongest": int(i == strongest), **asdict(burst)})
                     for i in range(1, len(bursts)):
                         gap = bursts[i].center_ns - bursts[i - 1].center_ns

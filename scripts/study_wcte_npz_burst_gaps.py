@@ -22,14 +22,16 @@ import numpy as np
 
 try:
     from scripts.study_wcte_burst_gaps import (
-        Burst, beamline_status, find_bursts, plot_histograms,
+        Burst, HD_IDS, beamline_status, corrected_beamline_hits, find_bursts,
+        later_hodoscope_match_counts, plot_histograms,
         plot_t0_comparison,
     )
 except ModuleNotFoundError as exc:
     if exc.name != "scripts":
         raise
     from study_wcte_burst_gaps import (
-        Burst, beamline_status, find_bursts, plot_histograms,
+        Burst, HD_IDS, beamline_status, corrected_beamline_hits, find_bursts,
+        later_hodoscope_match_counts, plot_histograms,
         plot_t0_comparison,
     )
 
@@ -39,6 +41,30 @@ REQUIRED_NPZ = (
     "digi_hit_time", "digi_hit_charge", "digi_hit_pmt",
     "beamline_pmt_tdc_ids", "beamline_pmt_tdc_times",
 )
+
+
+def plot_hodoscope_times(path: Path, times_by_element: dict[int, list[float]],
+                        *, tdc_time_mode: str) -> None:
+    """Plot HD hit times relative to the earliest T0 group for each readout."""
+    fig, axes = plt.subplots(3, 5, figsize=(15, 8), sharex=True, sharey=True,
+                             constrained_layout=True)
+    edges = np.arange(-500, 10_000 + 50, 50)
+    for element, axis in enumerate(axes.flat):
+        values = times_by_element[element]
+        if values:
+            axis.hist(values, bins=edges, histtype="step", color="tab:purple", linewidth=1.2)
+        else:
+            axis.text(0.5, 0.5, "No hits", ha="center", va="center", transform=axis.transAxes)
+        axis.set_title(f"HD{element} (n={len(values):,})", fontsize=9)
+        axis.grid(alpha=0.18)
+    for axis in axes[-1, :]:
+        axis.set_xlabel("HD time − earliest T0 group (ns)")
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Hits / 50 ns")
+    fig.suptitle(f"Beamline hodoscope timing by element ({tdc_time_mode} TDC mode; "
+                 "no additional inter-bank offset)")
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
 
 
 def conversion_parts(directory: Path) -> tuple[list[Path], dict]:
@@ -78,21 +104,27 @@ def run(args: argparse.Namespace) -> dict:
     counts: Counter[str] = Counter()
     multiplicities: Counter[int] = Counter()
     alignment_candidates: list[float] = []
+    hd_times_by_element = {element: [] for element in range(15)}
     previous_entry = -1
     with (args.output_dir / "bursts.csv").open("w", newline="", encoding="utf-8") as burst_file, \
          (args.output_dir / "gaps.csv").open("w", newline="", encoding="utf-8") as gap_file, \
          (args.output_dir / "t0_group_gaps.csv").open("w", newline="", encoding="utf-8") as t0_file, \
-         (args.output_dir / "alignment_candidates.csv").open("w", newline="", encoding="utf-8") as align_file:
+         (args.output_dir / "alignment_candidates.csv").open("w", newline="", encoding="utf-8") as align_file, \
+         (args.output_dir / "hodoscope_hits.csv").open("w", newline="", encoding="utf-8") as hd_file:
         identity_fields = ("root_entry", "run_id", "event_number", "readout_number")
         burst_writer = csv.DictWriter(burst_file, fieldnames=(
-            *identity_fields, "n_t0_groups", "burst_index", "strongest", *Burst.__dataclass_fields__))
+            *identity_fields, "n_t0_groups", "n_late_hd_hits", "n_late_hd_groups",
+            "burst_index", "strongest", *Burst.__dataclass_fields__))
         gap_writer = csv.DictWriter(gap_file, fieldnames=(
             *identity_fields, "n_t0_groups", "kind", "from_burst", "to_burst", "gap_ns"))
         t0_writer = csv.DictWriter(t0_file, fieldnames=(
             *identity_fields, "from_t0_group", "to_t0_group", "from_time_ns", "to_time_ns", "gap_ns"))
         align_writer = csv.DictWriter(align_file, fieldnames=(
             *identity_fields, "t0_ns", "pmt_burst_ns", "pmt_minus_t0_ns", "n_pmt_bursts"))
-        for writer in (burst_writer, gap_writer, t0_writer, align_writer):
+        hd_writer = csv.DictWriter(hd_file, fieldnames=(
+            *identity_fields, "channel_id", "hd_element", "corrected_time_ns",
+            "time_from_earliest_t0_ns"))
+        for writer in (burst_writer, gap_writer, t0_writer, align_writer, hd_writer):
             writer.writeheader()
         for part in parts:
             with np.load(part, allow_pickle=True) as archive:
@@ -123,11 +155,27 @@ def run(args: argparse.Namespace) -> dict:
                     if args.selection == "tagged" and not tagged:
                         continue
                     counts["selected_windows"] += 1
+                    n_late_hd_hits, n_late_hd_groups = later_hodoscope_match_counts(
+                        event, t0_centers, tdc_time_mode=args.tdc_time_mode)
+                    corrected_hits, _ = corrected_beamline_hits(
+                        event, tdc_time_mode=args.tdc_time_mode)
                     n_t0 = len(t0_centers)
                     identity = {"root_entry": entry, "run_id": int(event["run_id"]),
                                 "event_number": int(event["event_id"]),
                                 "readout_number": int(event["readout_number"]),
                                 "n_t0_groups": n_t0}
+                    if t0_centers:
+                        for channel_id, hd_time in corrected_hits:
+                            if channel_id not in HD_IDS:
+                                continue
+                            element = HD_IDS[channel_id]
+                            dt = hd_time - t0_centers[0]
+                            hd_times_by_element[element].append(dt)
+                            hd_writer.writerow({**{key: identity[key] for key in identity_fields},
+                                                "channel_id": channel_id,
+                                                "hd_element": element,
+                                                "corrected_time_ns": hd_time,
+                                                "time_from_earliest_t0_ns": dt})
                     for j in range(1, n_t0):
                         gap = t0_centers[j] - t0_centers[j - 1]
                         t0_writer.writerow({**{key: identity[key] for key in identity_fields},
@@ -167,6 +215,8 @@ def run(args: argparse.Namespace) -> dict:
                     group = "no_t0" if n_t0 == 0 else "one_t0_group" if n_t0 == 1 else "multiple_t0_groups"
                     for j, burst in enumerate(bursts):
                         burst_writer.writerow({**identity, "burst_index": j,
+                                               "n_late_hd_hits": n_late_hd_hits,
+                                               "n_late_hd_groups": n_late_hd_groups,
                                                "strongest": int(j == strongest), **asdict(burst)})
                     for j in range(1, len(bursts)):
                         gap = bursts[j].center_ns - bursts[j - 1].center_ns
@@ -207,6 +257,8 @@ def run(args: argparse.Namespace) -> dict:
         "one_t0_group", "multiple_t0_groups", "no_t0")), np.zeros(len(edges) - 1, dtype=np.int64))
     plot_t0_comparison(args.output_dir / "t0_vs_pmt_gap_histograms.png",
                        t0_hist, pmt_consecutive, edges)
+    plot_hodoscope_times(args.output_dir / "hodoscope_time_histograms.png", hd_times_by_element,
+                         tdc_time_mode=args.tdc_time_mode)
     fig, axis = plt.subplots(figsize=(9, 4.5), constrained_layout=True)
     if alignment_candidates:
         axis.hist(alignment_candidates, bins=100, histtype="step", color="tab:green")
