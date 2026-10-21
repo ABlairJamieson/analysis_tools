@@ -73,6 +73,7 @@ def test_root_burst_gap_outputs(tmp_path):
     assert (output / "clusters_per_event.png").stat().st_size > 0
     assert (output / "hits_per_cluster.png").stat().st_size > 0
     assert (output / "prompt_delayed_cluster_times.png").stat().st_size > 0
+    assert (output / "all_cluster_times_readout.png").stat().st_size > 0
     assert summary["basic_cluster_plot_counts"] == {
         "all_bursts": 2,
         "unique_prompt_bursts": 1,

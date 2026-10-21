@@ -19,6 +19,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
 
+try:
+    from scripts.study_wcte_burst_gaps import save_data_plot
+except ModuleNotFoundError as exc:
+    if exc.name != "scripts":
+        raise
+    from study_wcte_burst_gaps import save_data_plot
+
 
 REQUIRED = {"root_entry", "run_id", "readout_number", "center_ns", "n_pmts"}
 
@@ -213,7 +220,7 @@ def run(args: argparse.Namespace) -> dict:
                  color="tab:blue", lw=1)
     axes[1].set(xlabel="Time after selected prompt PMT burst (ns)",
                 ylabel="Data − comb")
-    fig.savefig(args.output_dir / "delayed_burst_lifetime_check.png", dpi=170)
+    save_data_plot(fig, args.output_dir / "delayed_burst_lifetime_check.png", dpi=170)
     plt.close(fig)
     print(f"Selected {counts['selected_windows']:,} windows; {len(delays):,} delayed bursts")
     print(f"Comb template: {source}, {len(template_delays):,} bursts")

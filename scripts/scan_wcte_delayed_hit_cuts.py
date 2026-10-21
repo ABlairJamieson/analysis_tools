@@ -24,10 +24,12 @@ import numpy as np
 
 try:
     from scripts.fit_wcte_delayed_bursts import fit_models, phase_template
+    from scripts.study_wcte_burst_gaps import save_data_plot
 except ModuleNotFoundError as exc:
     if exc.name != "scripts":
         raise
     from fit_wcte_delayed_bursts import fit_models, phase_template
+    from study_wcte_burst_gaps import save_data_plot
 
 
 REQUIRED = {"root_entry", "run_id", "readout_number", "center_ns", "n_hits", "n_pmts"}
@@ -192,7 +194,7 @@ def run(args: argparse.Namespace) -> dict:
              title="WCTE delayed-burst timing under inclusive hit-count ceilings")
     axis.grid(alpha=0.2)
     axis.legend(title=f"Prompt windows: {counts['unique_prompt_windows']:,}", fontsize=9)
-    fig.savefig(args.output_dir / "hit_cut_timing_overlay.png", dpi=170)
+    save_data_plot(fig, args.output_dir / "hit_cut_timing_overlay.png", dpi=170)
     plt.close(fig)
 
     all_delays = np.asarray([b["delay_ns"] for b in bursts])
@@ -215,7 +217,7 @@ def run(args: argparse.Namespace) -> dict:
     axes[1].set(xlabel="Delay after unique prompt burst (ns)",
                 ylabel="Digit hits in delayed burst", title="Delayed-burst hits versus time")
     fig.colorbar(hist2d[3], ax=axes[1], label="Delayed bursts / bin (log scale)")
-    fig.savefig(args.output_dir / "hit_cut_metrics.png", dpi=170)
+    save_data_plot(fig, args.output_dir / "hit_cut_metrics.png", dpi=170)
     plt.close(fig)
 
     if counts["later_hodoscope_columns_available"]:
@@ -236,7 +238,7 @@ def run(args: argparse.Namespace) -> dict:
                  title=f"Effect of later hodoscope activity (≤{compare_cut} hits)")
         axis.grid(alpha=0.2)
         axis.legend()
-        fig.savefig(args.output_dir / "late_hd_veto_comparison.png", dpi=170)
+        save_data_plot(fig, args.output_dir / "late_hd_veto_comparison.png", dpi=170)
         plt.close(fig)
 
     with (args.output_dir / "hit_cut_histograms.csv").open(

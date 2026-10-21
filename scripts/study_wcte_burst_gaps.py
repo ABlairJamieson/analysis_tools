@@ -39,6 +39,15 @@ HD_IDS = {**{32 + i: i for i in range(7)}, 16: 7,
           **{17 + i: i + 8 for i in range(7)}}
 HD_DT_WINDOWS = {hd: ((-50.0, 100.0) if hd in (0, 1, 2, 3, 8, 9, 10, 11)
                        else (80.0, 200.0)) for hd in range(15)}
+
+
+def save_data_plot(fig, path, **kwargs):
+    """Save a figure with an explicit label identifying it as real data."""
+    fig.text(0.99, 0.995, "data", ha="right", va="top", fontsize=10,
+             color="#7f1d1d", weight="bold")
+    fig.savefig(path, **kwargs)
+
+
 REQUIRED = ("run_id", "event_number", "readout_number", "window_data_quality_mask",
             "hit_pmt_calibrated_times", "hit_pmt_charges", "hit_pmt_readout_mask",
             "hit_mpmt_slot_ids", "hit_pmt_position_ids",
@@ -201,7 +210,7 @@ def plot_histograms(path: Path, histograms: dict[tuple[str, str], np.ndarray],
             axis.grid(alpha=0.2)
             axis.legend(fontsize=8)
     fig.suptitle(f"Within-window PMT burst gaps: {multi:,}/{selected:,} selected windows have 2+ bursts")
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
@@ -222,7 +231,7 @@ def plot_t0_comparison(path: Path, t0_hist: np.ndarray, pmt_hist: np.ndarray,
     axes[1].legend(fontsize=8)
     for axis in axes:
         axis.grid(alpha=0.2)
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
@@ -242,7 +251,7 @@ def plot_hodoscope_times(path: Path, histograms: dict[int, np.ndarray],
         axis.set_ylabel("Hits / bin")
     fig.suptitle(f"Tagged-gamma hodoscope hits by element — {tdc_time_mode} TDC correction\n"
                  "Relative T0 timing only; HD element indicates remaining positron energy")
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
@@ -262,7 +271,7 @@ def plot_hd_residuals(path: Path, values_by_hd: dict[int, list[float]], *,
     for axis in axes[:, 0]:
         axis.set_ylabel("Pairs / bin")
     fig.suptitle(title + " — per HD element")
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
@@ -283,7 +292,7 @@ def plot_delayed_match_map(path: Path, t0_residuals: list[float],
              ylabel="(delayed PMT − later HD) − (prompt PMT − prompt HD) (ns)",
              title="Later-bunch / HD timing consistency (diagnostic only)")
     axis.grid(alpha=0.15)
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
@@ -298,13 +307,15 @@ def plot_t5_native_times(path: Path, t5_times: list[float], available: bool) -> 
     axis.set(xlabel="T5_hit_time (native branch units; no alignment applied)",
              ylabel="Hits / bin", title="T5 hit-time distribution — native values only")
     axis.grid(alpha=0.2)
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
 def plot_basic_cluster_diagnostics(output_dir: Path, multiplicities: Counter[int],
                                    hit_counts: dict[str, Counter[int]],
+                                   all_burst_time_hist: np.ndarray,
                                    prompt_time_hist: np.ndarray,
+                                   delayed_absolute_time_hist: np.ndarray,
                                    delayed_time_hist: np.ndarray,
                                    cluster_time_edges: np.ndarray,
                                    delay_time_edges: np.ndarray,
@@ -319,7 +330,7 @@ def plot_basic_cluster_diagnostics(output_dir: Path, multiplicities: Counter[int
              ylabel="Readout windows / bin", title="Cluster multiplicity per readout")
     axis.set_xticks(np.arange(max_clusters + 1))
     axis.grid(alpha=0.2)
-    fig.savefig(output_dir / "clusters_per_event.png", dpi=170)
+    save_data_plot(fig, output_dir / "clusters_per_event.png", dpi=170)
     plt.close(fig)
 
     fig, axes = plt.subplots(3, 1, figsize=(9, 10), constrained_layout=True)
@@ -336,7 +347,7 @@ def plot_basic_cluster_diagnostics(output_dir: Path, multiplicities: Counter[int
         axis.grid(alpha=0.2)
     axes[-1].set_xlabel(f"Digit hits in {burst_width_ns:g}-ns burst window")
     fig.suptitle("Hit count per PMT cluster")
-    fig.savefig(output_dir / "hits_per_cluster.png", dpi=170)
+    save_data_plot(fig, output_dir / "hits_per_cluster.png", dpi=170)
     plt.close(fig)
 
     fig, axes = plt.subplots(2, 1, figsize=(9, 8), constrained_layout=True)
@@ -349,7 +360,22 @@ def plot_basic_cluster_diagnostics(output_dir: Path, multiplicities: Counter[int
     for axis in axes:
         axis.grid(alpha=0.2)
     fig.suptitle("Basic prompt and delayed cluster timing")
-    fig.savefig(output_dir / "prompt_delayed_cluster_times.png", dpi=170)
+    save_data_plot(fig, output_dir / "prompt_delayed_cluster_times.png", dpi=170)
+    plt.close(fig)
+
+    fig, axis = plt.subplots(figsize=(10, 5), constrained_layout=True)
+    axis.stairs(all_burst_time_hist, cluster_time_edges, color="tab:blue",
+                linewidth=1.5, label=f"All found bursts (n={int(all_burst_time_hist.sum()):,})")
+    axis.stairs(prompt_time_hist, cluster_time_edges, color="tab:green",
+                linewidth=1.5, label=f"Unique prompt bursts (n={int(prompt_time_hist.sum()):,})")
+    axis.stairs(delayed_absolute_time_hist, cluster_time_edges, color="tab:orange",
+                linewidth=1.5, label=f"Delayed candidates (n={int(delayed_absolute_time_hist.sum()):,})")
+    axis.set(xlabel="Burst center in readout window (ns; common unshifted axis)",
+             ylabel="Bursts / bin", title="All burst times on the same readout-time axis")
+    axis.grid(alpha=0.2)
+    axis.legend()
+    fig.suptitle("All PMT burst times — prompt and delayed candidates on one axis")
+    save_data_plot(fig, output_dir / "all_cluster_times_readout.png", dpi=170)
     plt.close(fig)
 
 
@@ -416,7 +442,7 @@ def make_diagnostic_veto_comparison(output_dir: Path, prompt_residuals: dict[int
                     f"Both timing residuals within ±{t0_window_ns:g}/±{pmt_hd_window_ns:g} ns"))
     axis.grid(alpha=0.2)
     axis.legend(fontsize=9)
-    fig.savefig(output_dir / "delayed_candidate_no_veto_vs_late_hd_veto.png", dpi=170)
+    save_data_plot(fig, output_dir / "delayed_candidate_no_veto_vs_late_hd_veto.png", dpi=170)
     plt.close(fig)
     return {"eligible_prompt_tagged_readouts": eligible_prompt_windows,
             "no_veto_delayed_candidates": len(all_delays),
@@ -468,6 +494,8 @@ def run(args: argparse.Namespace) -> dict:
                                    args.hist_bin_ns)
     delay_time_edges = np.arange(0, delayed_max + args.hist_bin_ns, args.hist_bin_ns)
     prompt_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
+    all_burst_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
+    delayed_absolute_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
     delayed_time_hist = np.zeros(len(delay_time_edges) - 1, dtype=np.int64)
     alignment_candidates: list[float] = []
     with uproot.open(args.input_root) as root:
@@ -591,6 +619,9 @@ def run(args: argparse.Namespace) -> dict:
                     multiplicities[len(bursts)] += 1
                     for burst in bursts:
                         cluster_hit_counts["All bursts"][burst.n_hits] += 1
+                    if bursts:
+                        all_burst_time_hist += np.histogram(
+                            [burst.center_ns for burst in bursts], bins=cluster_time_edges)[0]
                     if not bursts:
                         continue
                     counts["windows_with_bursts"] += 1
@@ -609,6 +640,8 @@ def run(args: argparse.Namespace) -> dict:
                                 cluster_hit_counts["Delayed bursts"][burst.n_hits] += 1
                                 delayed_time_hist += np.histogram(
                                     [delay], bins=delay_time_edges)[0]
+                                delayed_absolute_time_hist += np.histogram(
+                                    [burst.center_ns], bins=cluster_time_edges)[0]
                     if len(prompt_bursts) == 1 and n_t0:
                         prompt_burst = prompt_bursts[0]
                         prompt_t0 = t0_centers[0]
@@ -759,7 +792,8 @@ def run(args: argparse.Namespace) -> dict:
     plot_histograms(args.output_dir / "burst_gap_histograms.png", histograms, edges,
                     counts["selected_windows"], counts["windows_with_multiple_bursts"])
     plot_basic_cluster_diagnostics(args.output_dir, multiplicities, cluster_hit_counts,
-                                   prompt_time_hist, delayed_time_hist,
+                                   all_burst_time_hist, prompt_time_hist,
+                                   delayed_absolute_time_hist, delayed_time_hist,
                                    cluster_time_edges, delay_time_edges,
                                    args.width_ns)
     pmt_consecutive = sum((histograms[("consecutive", group)] for group in (
@@ -796,7 +830,7 @@ def run(args: argparse.Namespace) -> dict:
     axis.set(xlabel="Prompt PMT burst − reference-corrected T0 (ns)",
              ylabel="Windows / bin", title="Empirical cross-system alignment candidates")
     axis.grid(alpha=0.2)
-    fig.savefig(args.output_dir / "alignment_candidates.png", dpi=170)
+    save_data_plot(fig, args.output_dir / "alignment_candidates.png", dpi=170)
     plt.close(fig)
     print(f"Scanned {counts['raw_windows']:,} ROOT windows; selected {counts['selected_windows']:,}; "
           f"{counts['windows_with_multiple_bursts']:,} have 2+ PMT bursts")
@@ -809,7 +843,7 @@ def run(args: argparse.Namespace) -> dict:
     print(f"Results: {args.output_dir}")
     print("Basic cluster plots:")
     for filename in ("clusters_per_event.png", "hits_per_cluster.png",
-                     "prompt_delayed_cluster_times.png"):
+                     "prompt_delayed_cluster_times.png", "all_cluster_times_readout.png"):
         print(f"  {args.output_dir / filename}")
     veto = summary["diagnostic_veto_comparison"]
     print("HD/WCTE timing diagnostics:")

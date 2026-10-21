@@ -126,6 +126,10 @@ prompt interval; delayed plots/counts include every burst in the configured
 delay interval for those uniquely-prompted windows. These remain burst-finder
 diagnostics, not particle identifications. The definitions and plotted counts
 are also recorded in `summary.json` under `basic_cluster_plot_counts`.
+`all_cluster_times_readout.png` overlays every found burst, the unique-prompt
+subset, and delayed candidates against the same unshifted readout-window time
+axis. This includes bursts in readouts without a unique prompt tag and makes
+later-bunch timing visible alongside the selected prompt population.
 `bursts.csv`, `gaps.csv`, and `t0_group_gaps.csv` preserve per-window values
 and ROOT entry/readout IDs; `summary.json` records counts and thresholds.
 The study now uses TDC references 31/46 by default, and writes

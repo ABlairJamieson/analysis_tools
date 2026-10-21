@@ -23,7 +23,7 @@ import numpy as np
 try:
     from scripts.study_wcte_burst_gaps import (
         Burst, HD_IDS, beamline_status, corrected_beamline_hits, find_bursts,
-        later_hodoscope_match_counts, plot_histograms,
+        later_hodoscope_match_counts, plot_histograms, save_data_plot,
         plot_t0_comparison,
     )
 except ModuleNotFoundError as exc:
@@ -31,7 +31,7 @@ except ModuleNotFoundError as exc:
         raise
     from study_wcte_burst_gaps import (
         Burst, HD_IDS, beamline_status, corrected_beamline_hits, find_bursts,
-        later_hodoscope_match_counts, plot_histograms,
+        later_hodoscope_match_counts, plot_histograms, save_data_plot,
         plot_t0_comparison,
     )
 
@@ -63,7 +63,7 @@ def plot_hodoscope_times(path: Path, times_by_element: dict[int, list[float]],
         axis.set_ylabel("Hits / 50 ns")
     fig.suptitle(f"Beamline hodoscope timing by element ({tdc_time_mode} TDC mode; "
                  "no additional inter-bank offset)")
-    fig.savefig(path, dpi=170)
+    save_data_plot(fig, path, dpi=170)
     plt.close(fig)
 
 
@@ -268,7 +268,7 @@ def run(args: argparse.Namespace) -> dict:
     axis.set(xlabel="Prompt PMT burst − reference-corrected T0 (ns)",
              ylabel="Windows / bin", title="Empirical cross-system alignment candidates")
     axis.grid(alpha=0.2)
-    fig.savefig(args.output_dir / "alignment_candidates.png", dpi=170)
+    save_data_plot(fig, args.output_dir / "alignment_candidates.png", dpi=170)
     plt.close(fig)
     print(f"Read {counts['converted_quality_good_windows']:,} quality-selected NPZ windows; "
           f"selected {counts['selected_windows']:,}; "
