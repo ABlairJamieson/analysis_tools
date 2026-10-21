@@ -116,6 +116,16 @@ time groups. The linear panels zoom to 0–1500 ns; the log panels show the
 full range. `t0_vs_pmt_gap_histograms.png` compares the measured T0
 group-gap and PMT burst-gap shapes. T0 hits less than 50 ns apart are
 grouped; **50 ns is a grouping resolution, not an assumed T9 bunch period**.
+For basic event-level checks, `clusters_per_event.png` shows the number of
+PMT bursts found in each selected readout window, `hits_per_cluster.png`
+compares digit-hit counts for all bursts, uniquely selected prompt bursts,
+and delayed bursts, and `prompt_delayed_cluster_times.png` shows unique prompt
+centers in readout-relative time and delayed burst centers relative to that
+prompt. Prompt-time plots/counts require exactly one burst in the configured
+prompt interval; delayed plots/counts include every burst in the configured
+delay interval for those uniquely-prompted windows. These remain burst-finder
+diagnostics, not particle identifications. The definitions and plotted counts
+are also recorded in `summary.json` under `basic_cluster_plot_counts`.
 `bursts.csv`, `gaps.csv`, and `t0_group_gaps.csv` preserve per-window values
 and ROOT entry/readout IDs; `summary.json` records counts and thresholds.
 The study now uses TDC references 31/46 by default, and writes

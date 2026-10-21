@@ -70,6 +70,16 @@ def test_root_burst_gap_outputs(tmp_path):
     assert summary["tdc_time_mode"] == "reference"
     assert summary["counts"].get("windows_missing_tdc_ref31", 0) == 0
     assert (output / "burst_gap_histograms.png").stat().st_size > 0
+    assert (output / "clusters_per_event.png").stat().st_size > 0
+    assert (output / "hits_per_cluster.png").stat().st_size > 0
+    assert (output / "prompt_delayed_cluster_times.png").stat().st_size > 0
+    assert summary["basic_cluster_plot_counts"] == {
+        "all_bursts": 2,
+        "unique_prompt_bursts": 1,
+        "delayed_bursts": 1,
+        "prompt_definition": "Exactly one burst in [1500, 1900) ns; PMT finder thresholds apply",
+        "delayed_definition": "Burst delay from unique prompt in [500, 7500] ns; PMT finder thresholds apply",
+    }
     assert (output / "t0_vs_pmt_gap_histograms.png").stat().st_size > 0
     assert (output / "hodoscope_hit_times.png").stat().st_size > 0
     assert (output / "prompt_pmt_hd_residuals_by_element.png").stat().st_size > 0

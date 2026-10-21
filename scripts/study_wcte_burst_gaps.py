@@ -302,6 +302,57 @@ def plot_t5_native_times(path: Path, t5_times: list[float], available: bool) -> 
     plt.close(fig)
 
 
+def plot_basic_cluster_diagnostics(output_dir: Path, multiplicities: Counter[int],
+                                   hit_counts: dict[str, Counter[int]],
+                                   prompt_time_hist: np.ndarray,
+                                   delayed_time_hist: np.ndarray,
+                                   cluster_time_edges: np.ndarray,
+                                   delay_time_edges: np.ndarray,
+                                   burst_width_ns: float) -> None:
+    """Write uncomplicated multiplicity, hit-count, and prompt/delay timing plots."""
+    max_clusters = max(multiplicities, default=0)
+    fig, axis = plt.subplots(figsize=(8, 5), constrained_layout=True)
+    cluster_values = np.arange(max_clusters + 1)
+    axis.bar(cluster_values, [multiplicities.get(n, 0) for n in cluster_values],
+             width=0.9, color="tab:blue", alpha=0.75)
+    axis.set(xlabel="PMT clusters found in one selected readout window",
+             ylabel="Readout windows / bin", title="Cluster multiplicity per readout")
+    axis.set_xticks(np.arange(max_clusters + 1))
+    axis.grid(alpha=0.2)
+    fig.savefig(output_dir / "clusters_per_event.png", dpi=170)
+    plt.close(fig)
+
+    fig, axes = plt.subplots(3, 1, figsize=(9, 10), constrained_layout=True)
+    for axis, label in zip(axes, ("All bursts", "Unique prompt bursts", "Delayed bursts")):
+        values = hit_counts[label]
+        max_hits = max(values, default=0)
+        hit_edges = np.arange(max_hits + 2) - 0.5
+        heights = np.zeros(max_hits + 1, dtype=np.int64)
+        for hits, count in values.items():
+            heights[hits] = count
+        axis.stairs(heights, hit_edges, color="tab:blue", linewidth=1.5)
+        axis.set_ylabel("Clusters / bin")
+        axis.set_title(f"{label} (n={sum(values.values()):,})")
+        axis.grid(alpha=0.2)
+    axes[-1].set_xlabel(f"Digit hits in {burst_width_ns:g}-ns burst window")
+    fig.suptitle("Hit count per PMT cluster")
+    fig.savefig(output_dir / "hits_per_cluster.png", dpi=170)
+    plt.close(fig)
+
+    fig, axes = plt.subplots(2, 1, figsize=(9, 8), constrained_layout=True)
+    axes[0].stairs(prompt_time_hist, cluster_time_edges, color="tab:green", linewidth=1.5)
+    axes[0].set(xlabel="Prompt-cluster center in readout window (ns)",
+                ylabel="Clusters / bin", title="Unique prompt-cluster times")
+    axes[1].stairs(delayed_time_hist, delay_time_edges, color="tab:orange", linewidth=1.5)
+    axes[1].set(xlabel="Delayed-cluster center minus unique prompt-cluster center (ns)",
+                ylabel="Clusters / bin", title="Delayed-cluster times relative to prompt")
+    for axis in axes:
+        axis.grid(alpha=0.2)
+    fig.suptitle("Basic prompt and delayed cluster timing")
+    fig.savefig(output_dir / "prompt_delayed_cluster_times.png", dpi=170)
+    plt.close(fig)
+
+
 def make_diagnostic_veto_comparison(output_dir: Path, prompt_residuals: dict[int, list[float]],
                                     eligible_prompt_windows: int, *,
                                     t0_window_ns: float, pmt_hd_window_ns: float,
@@ -411,6 +462,13 @@ def run(args: argparse.Namespace) -> dict:
     eligible_prompt_windows = 0
     counts: Counter[str] = Counter()
     multiplicities: Counter[int] = Counter()
+    cluster_hit_counts = {label: Counter() for label in
+                          ("All bursts", "Unique prompt bursts", "Delayed bursts")}
+    cluster_time_edges = np.arange(args.min_ns, args.max_ns + args.hist_bin_ns,
+                                   args.hist_bin_ns)
+    delay_time_edges = np.arange(0, delayed_max + args.hist_bin_ns, args.hist_bin_ns)
+    prompt_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
+    delayed_time_hist = np.zeros(len(delay_time_edges) - 1, dtype=np.int64)
     alignment_candidates: list[float] = []
     with uproot.open(args.input_root) as root:
         tree = root["WCTEReadoutWindows"]
@@ -531,6 +589,8 @@ def run(args: argparse.Namespace) -> dict:
                                          min_separation_ns=args.min_separation_ns,
                                          max_bursts=args.max_bursts)
                     multiplicities[len(bursts)] += 1
+                    for burst in bursts:
+                        cluster_hit_counts["All bursts"][burst.n_hits] += 1
                     if not bursts:
                         continue
                     counts["windows_with_bursts"] += 1
@@ -538,6 +598,17 @@ def run(args: argparse.Namespace) -> dict:
                         counts["windows_with_multiple_bursts"] += 1
                     prompt_bursts = [burst for burst in bursts
                                      if prompt_min <= burst.center_ns < prompt_max]
+                    if len(prompt_bursts) == 1:
+                        prompt_burst_for_plots = prompt_bursts[0]
+                        cluster_hit_counts["Unique prompt bursts"][prompt_burst_for_plots.n_hits] += 1
+                        prompt_time_hist += np.histogram(
+                            [prompt_burst_for_plots.center_ns], bins=cluster_time_edges)[0]
+                        for burst in bursts:
+                            delay = burst.center_ns - prompt_burst_for_plots.center_ns
+                            if delayed_min <= delay <= delayed_max:
+                                cluster_hit_counts["Delayed bursts"][burst.n_hits] += 1
+                                delayed_time_hist += np.histogram(
+                                    [delay], bins=delay_time_edges)[0]
                     if len(prompt_bursts) == 1 and n_t0:
                         prompt_burst = prompt_bursts[0]
                         prompt_t0 = t0_centers[0]
@@ -638,6 +709,13 @@ def run(args: argparse.Namespace) -> dict:
             summary = {
                 "counts": dict(counts),
                 "burst_multiplicity_per_selected_window": {str(k): v for k, v in sorted(multiplicities.items())},
+                "basic_cluster_plot_counts": {
+                    "all_bursts": int(sum(cluster_hit_counts["All bursts"].values())),
+                    "unique_prompt_bursts": int(sum(cluster_hit_counts["Unique prompt bursts"].values())),
+                    "delayed_bursts": int(sum(cluster_hit_counts["Delayed bursts"].values())),
+                    "prompt_definition": f"Exactly one burst in [{prompt_min}, {prompt_max}) ns; PMT finder thresholds apply",
+                    "delayed_definition": f"Burst delay from unique prompt in [{delayed_min}, {delayed_max}] ns; PMT finder thresholds apply",
+                },
                 "selection": args.selection,
                 "tdc_time_mode": tdc_mode,
                 "alignment_candidates": {
@@ -680,6 +758,10 @@ def run(args: argparse.Namespace) -> dict:
     (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     plot_histograms(args.output_dir / "burst_gap_histograms.png", histograms, edges,
                     counts["selected_windows"], counts["windows_with_multiple_bursts"])
+    plot_basic_cluster_diagnostics(args.output_dir, multiplicities, cluster_hit_counts,
+                                   prompt_time_hist, delayed_time_hist,
+                                   cluster_time_edges, delay_time_edges,
+                                   args.width_ns)
     pmt_consecutive = sum((histograms[("consecutive", group)] for group in (
         "one_t0_group", "multiple_t0_groups", "no_t0")), np.zeros(len(edges) - 1, dtype=np.int64))
     plot_t0_comparison(args.output_dir / "t0_vs_pmt_gap_histograms.png",
@@ -725,6 +807,10 @@ def run(args: argparse.Namespace) -> dict:
         print(f"Empirical alignment candidates: {len(alignment_candidates):,}; "
               "inspect alignment_candidates.png before using an offset")
     print(f"Results: {args.output_dir}")
+    print("Basic cluster plots:")
+    for filename in ("clusters_per_event.png", "hits_per_cluster.png",
+                     "prompt_delayed_cluster_times.png"):
+        print(f"  {args.output_dir / filename}")
     veto = summary["diagnostic_veto_comparison"]
     print("HD/WCTE timing diagnostics:")
     for filename in (
