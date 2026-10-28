@@ -1,0 +1,58 @@
+import argparse
+import json
+
+import awkward as ak
+import numpy as np
+import uproot
+
+from scripts.study_wcte_beamline_prompt import main_peak, robust_group_mean, run
+
+
+def test_main_peak_and_production_style_group_average():
+    center, count, entries = main_peak([100.2, 100.3, 101.0, 500.0], bin_ns=2)
+    assert abs(center - 100.0) < 2
+    assert count >= 2
+    assert entries == 4
+    assert robust_group_mean({0: 10, 1: 11, 2: 12, 3: 310}, (0, 1, 2, 3)) == 11
+
+
+def test_prompt_gated_beamline_outputs(tmp_path):
+    root_path = tmp_path / "beamline.root"
+    ids = [31, 46, *range(8), *range(48, 64), 32, 17]
+    corrected_times = [
+        1000, 2000,
+        1000, 1001, 1002, 1003, 1010, 1011, 1012, 1013,
+        *[1030 + (ch - 48) * 0.1 for ch in range(48, 56)],
+        *[1032 + (ch - 56) * 0.1 for ch in range(56, 64)],
+        1040, 1045,
+    ]
+    raw_times = [corrected_times[0], corrected_times[1],
+                 *[value + (1000 if channel <= 31 else 2000)
+                   for channel, value in zip(ids[2:], corrected_times[2:])]]
+    with uproot.recreate(root_path) as root:
+        tree = root.mktree("WCTEReadoutWindows", {
+            "beamline_pmt_tdc_ids": "var * int32",
+            "beamline_pmt_tdc_times": "var * float64",
+            "vme_digi_issues_bitmask": "int32",
+        })
+        tree.extend({
+            "beamline_pmt_tdc_ids": ak.Array([ids, ids, ids]),
+            "beamline_pmt_tdc_times": ak.Array([raw_times, raw_times, raw_times]),
+            "vme_digi_issues_bitmask": np.array([0, 0, 0], dtype=np.int32),
+        })
+    out = tmp_path / "prompt"
+    summary = run(argparse.Namespace(
+        input_root=root_path, tree="WCTEReadoutWindows", output_dir=out,
+        entry_start=0, max_events=10, prompt_half_width_ns=40,
+        peak_bin_ns=2, end_diff_range_ns=40,
+    ))
+    assert summary["beamline_quality_readouts"] == 3
+    assert summary["prompt_gate_centers"]["T0 four-PMT average"]["center_ns"] == 1001.5
+    assert summary["tof_counts"]["T0-T1"] == 3
+    assert summary["tof_counts"]["T0-T5"] == 24
+    assert summary["tof_counts"]["T0-HD0"] == 3
+    assert summary["tof_counts"]["T0-HD8"] == 3
+    assert all(row == [0, 0, 3] for row in summary["t5_end_multiplicity"])
+    assert (out / "beamline_prompt_peaks.png").stat().st_size > 0
+    assert (out / "beamline_prompt_tof_and_t5.png").stat().st_size > 0
+    assert json.loads((out / "summary.json").read_text())["prompt_gate_half_width_ns"] == 40

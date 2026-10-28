@@ -182,6 +182,36 @@ T0 group does not prove that a later PMT burst was not beam-related. Gap
 peaks alone cannot assign individual particles or distinguish delayed
 physics from instrumental structure.
 
+### Fixed-prompt beamline timing and T5 multiplicity
+
+`scripts/study_wcte_beamline_prompt.py` makes a prompt-only beam-monitor study
+without applying a WCTE PMT quality mask. It requires both beamline TDC
+reference channels and, when present, a clear `vme_digi_issues_bitmask`. The
+script subtracts the first channel-31/46 reference hit using the established
+beam-monitor convention. It finds the main peak once for the four-PMT T0
+average, four-PMT T1 average, each T5 end and paired-bar mean, and each HD
+channel, then uses fixed ±40 ns gates for every readout. T5 end gates are
+per-end/per-bar so cable and bar offsets do not suppress a real two-ended hit.
+T5 multiplicity is reported as 0, 1, or 2 ends per bar; no T5 multiple-hit
+veto is applied. These corrected beamline times are not aligned to the WCTE
+PMT clock.
+
+Example on lxplus:
+
+```bash
+python3 scripts/study_wcte_beamline_prompt.py \
+  /eos/experiment/wcte/data/2025_commissioning/processed_offline_data/production_v1_0/1827/WCTE_merged_production_R1827.root \
+  --output-dir outputs/R1827_beamline_prompt --max-events 100000
+```
+
+The output includes `beamline_prompt_peaks.png` (peak locations and fixed
+gates), `beamline_prompt_tof_and_t5.png` (per-TOF histograms, T5 per-bar end
+multiplicity, and paired-end time differences), `prompt_tof_values.csv`,
+`t5_prompt_multiplicity.csv`, and `summary.json` with gate centers and counts.
+The T0–HD0 and T0–HD8 panels are separate because those channels use different
+reference banks; inspect their measured offsets before interpreting them as
+particle time-of-flight.
+
 For a full run, omit --max-events. The script writes files such as
 R1827_part00000.npz, with 5000 quality-selected windows per file by default.
 Use --events-per-file to change that limit. The output contains
