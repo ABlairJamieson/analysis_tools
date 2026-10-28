@@ -18,13 +18,13 @@ def test_main_peak_and_production_style_group_average():
 
 def test_prompt_gated_beamline_outputs(tmp_path):
     root_path = tmp_path / "beamline.root"
-    ids = [31, 46, *range(8), *range(48, 64), 32, 17]
+    ids = [31, 46, *range(8), *range(48, 64), 32, 37, 17]
     corrected_times = [
         1000, 2000,
         1000, 1001, 1002, 1003, 1010, 1011, 1012, 1013,
         *[1030 + (ch - 48) * 0.1 for ch in range(48, 56)],
         *[1032 + (ch - 56) * 0.1 for ch in range(56, 64)],
-        1040, 1045,
+        1040, 1047, 1045,
     ]
     raw_times = [corrected_times[0], corrected_times[1],
                  *[value + (1000 if channel <= 31 else 2000)
@@ -51,8 +51,11 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert summary["tof_counts"]["T0-T1"] == 3
     assert summary["tof_counts"]["T0-T5"] == 24
     assert summary["tof_counts"]["T0-HD0"] == 3
+    assert summary["tof_counts"]["T0-HD5"] == 3
     assert summary["tof_counts"]["T0-HD8"] == 3
     assert all(row == [0, 0, 3] for row in summary["t5_end_multiplicity"])
-    assert (out / "beamline_prompt_peaks.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_t0_t1.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_t5.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_hd.png").stat().st_size > 0
     assert (out / "beamline_prompt_tof_and_t5.png").stat().st_size > 0
     assert json.loads((out / "summary.json").read_text())["prompt_gate_half_width_ns"] == 40

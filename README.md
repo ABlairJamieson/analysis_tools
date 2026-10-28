@@ -204,13 +204,18 @@ python3 scripts/study_wcte_beamline_prompt.py \
   --output-dir outputs/R1827_beamline_prompt --max-events 100000
 ```
 
-The output includes `beamline_prompt_peaks.png` (peak locations and fixed
-gates), `beamline_prompt_tof_and_t5.png` (per-TOF histograms, T5 per-bar end
-multiplicity, and paired-end time differences), `prompt_tof_values.csv`,
+The peak diagnostics are split across `beamline_prompt_peaks_t0_t1.png`,
+`beamline_prompt_peaks_t5.png`, and `beamline_prompt_peaks_hd.png` so the
+channel distributions are readable. `beamline_prompt_tof_and_t5.png` contains
+separate TOF panels, T5 per-bar end multiplicity, and paired-end time
+differences; the multiplicity axis is logarithmic and the end-difference
+range defaults to ±20 ns. The T0–T1 panel overlays all readouts with both
+groups present and the subset passing both fixed prompt gates, making an empty
+gated sample diagnosable. T0–HD0 and T0–HD5 are cross-reference-bank time
+differences (T0 uses reference 31; these HD channels use 46); T0–HD8 shares
+reference 31. All remain detector-time differences, not calibrated physical
+TOFs. The script also writes `prompt_tof_values.csv`,
 `t5_prompt_multiplicity.csv`, and `summary.json` with gate centers and counts.
-The T0–HD0 and T0–HD8 panels are separate because those channels use different
-reference banks; inspect their measured offsets before interpreting them as
-particle time-of-flight.
 
 For a full run, omit --max-events. The script writes files such as
 R1827_part00000.npz, with 5000 quality-selected windows per file by default.

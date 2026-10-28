@@ -85,12 +85,9 @@ def save_data(fig, path: Path):
 
 
 def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, dict], out: Path):
-    labels = list(samples)
-    fig, axes = plt.subplots(len(labels), 1, figsize=(11, max(3, 2.4 * len(labels))))
-    if len(labels) == 1:
-        axes = [axes]
-    for axis, label in zip(axes, labels):
-        data = np.asarray(samples[label], dtype=float)
+    """Write separate, readable pages for T0/T1, T5 bars, and HD channels."""
+    def draw(axis, label, values):
+        data = np.asarray(values, dtype=float)
         data = data[np.isfinite(data)]
         if len(data):
             axis.hist(data, bins=160, histtype="step", color="tab:blue")
@@ -98,16 +95,48 @@ def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, di
         if np.isfinite(info["center_ns"]):
             axis.axvspan(info["center_ns"] - info["half_width_ns"],
                          info["center_ns"] + info["half_width_ns"],
-                         alpha=0.18, color="tab:orange", label="fixed prompt gate")
+                         alpha=0.18, color="tab:orange", label="fixed ±40 ns gate")
             axis.axvline(info["center_ns"], color="tab:orange", linestyle="--",
-                         label=f"peak={info['center_ns']:.1f} ns")
-            axis.legend()
+                         label=f"main peak={info['center_ns']:.1f} ns")
+            axis.legend(fontsize=8)
         axis.set_ylabel("Readouts / bin")
-        axis.set_title(f"{label}: n={len(data):,}")
-    axes[-1].set_xlabel("Reference-corrected beamline time (ns)")
-    fig.suptitle("Beamline prompt peaks and fixed ±40 ns gates")
+        axis.set_title(f"{label} (n={len(data):,})")
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
+    for axis, label in zip(axes, ("T0 four-PMT average", "T1 four-PMT average")):
+        draw(axis, label, samples[label])
+        axis.set_xlabel("Reference-corrected time (ns)")
+    fig.suptitle("T0/T1 main prompt peaks and fixed gates")
     fig.tight_layout()
-    save_data(fig, out)
+    save_data(fig, out.with_name("beamline_prompt_peaks_t0_t1.png"))
+
+    fig, axes = plt.subplots(4, 2, figsize=(13, 13), sharex=False)
+    for bar, axis in enumerate(axes.flat):
+        for end in range(2):
+            label = f"T5 bar {bar} end {end}"
+            values = np.asarray(samples[label], dtype=float)
+            values = values[np.isfinite(values)]
+            if len(values):
+                axis.hist(values, bins=120, histtype="step", label=f"end {end} (n={len(values):,})")
+            center = gates[label]["center_ns"]
+            if np.isfinite(center):
+                axis.axvspan(center - gates[label]["half_width_ns"],
+                             center + gates[label]["half_width_ns"], alpha=0.12)
+                axis.axvline(center, linestyle="--", linewidth=0.9)
+        axis.set(title=f"T5 bar {bar}", xlabel="Reference-corrected time (ns)", ylabel="Hits / bin")
+        axis.legend(fontsize=8)
+    fig.suptitle("T5 end-time peaks by bar; dashed lines mark per-end main peaks")
+    fig.tight_layout()
+    save_data(fig, out.with_name("beamline_prompt_peaks_t5.png"))
+
+    fig, axes = plt.subplots(5, 3, figsize=(15, 14), sharex=False)
+    for hd, axis in enumerate(axes.flat):
+        label = f"HD{hd}"
+        draw(axis, label, samples[label])
+        axis.set_xlabel("Reference-corrected time (ns)")
+    fig.suptitle("HD element main prompt peaks and fixed gates")
+    fig.tight_layout()
+    save_data(fig, out.with_name("beamline_prompt_peaks_hd.png"))
 
 
 def run(args):
@@ -182,15 +211,24 @@ def run(args):
 
     multiplicities = np.zeros((8, 3), dtype=np.int64)
     end_differences = [[] for _ in range(8)]
-    tofs = {"T0-T1": [], "T0-T5": [], "T0-HD0": [], "T0-HD8": []}
+    tofs = {"T0-T1": [], "T0-T5": [], "T0-HD0": [], "T0-HD5": [], "T0-HD8": []}
+    ungated_t0_t1 = []
+    gate_counts = {"t0_in_gate": 0, "t1_in_gate": 0, "both_in_gate": 0,
+                   "both_groups_present_before_gates": 0}
     t5_bar_tofs = [[] for _ in range(8)]
     for row in rows:
         t0_ok = in_gate("T0 four-PMT average", row["t0"])
         t1_ok = in_gate("T1 four-PMT average", row["t1"])
+        gate_counts["t0_in_gate"] += int(t0_ok)
+        gate_counts["t1_in_gate"] += int(t1_ok)
+        if row["t0"] is not None and row["t1"] is not None:
+            gate_counts["both_groups_present_before_gates"] += 1
+            ungated_t0_t1.append(row["t1"] - row["t0"])
         if t0_ok and t1_ok:
+            gate_counts["both_in_gate"] += 1
             tofs["T0-T1"].append(row["t1"] - row["t0"])
         if t0_ok:
-            for hd_id in (0, 8):
+            for hd_id in (0, 5, 8):
                 label = f"HD{hd_id}"
                 if hd_id in row["hd"] and in_gate(label, row["hd"][hd_id]):
                     tofs[f"T0-HD{hd_id}"].append(row["hd"][hd_id] - row["t0"])
@@ -210,13 +248,15 @@ def run(args):
                 end_differences[bar].append(row["times"][left] - row["times"][right])
     tofs["T0-T5"] = [x for values in t5_bar_tofs for x in values]
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
+    fig, axes = plt.subplots(2, 4, figsize=(17, 8))
     width = 0.25
     x = np.arange(8)
     for mult, color, label in ((0, "tab:gray", "0 ends"), (1, "tab:orange", "1 end"), (2, "tab:blue", "2 ends")):
         axes[0, 0].bar(x + (mult - 1) * width, multiplicities[:, mult], width=width,
                        color=color, label=label)
     axes[0, 0].set(xticks=x, xlabel="T5 bar", ylabel="Readouts", title="Prompt-gated T5 end multiplicity")
+    axes[0, 0].set_yscale("log")
+    axes[0, 0].set_ylim(bottom=0.5)
     axes[0, 0].legend()
     for bar, vals in enumerate(end_differences):
         if vals:
@@ -224,15 +264,30 @@ def run(args):
                             histtype="step", label=f"bar {bar}")
     axes[0, 1].set(xlabel="T5 left − right end time (ns)", ylabel="Paired hits / bin",
                    title="Prompt-gated T5 end-time differences")
+    axes[0, 1].set_xlim(-args.end_diff_range_ns, args.end_diff_range_ns)
     axes[0, 1].legend(ncol=2, fontsize=8)
-    tof_axes = (axes[0, 2], axes[1, 0], axes[1, 1], axes[1, 2])
+    tof_axes = (axes[0, 2], axes[0, 3], axes[1, 0], axes[1, 1], axes[1, 2])
     # Draw each TOF on its own scale; the detector separations and offsets differ.
     for axis, label in zip(tof_axes, tofs):
         vals = tofs[label]
         if vals:
             axis.hist(vals, bins=120, histtype="step", color="tab:blue")
-        axis.set(xlabel="Reference-corrected TOF (ns)", ylabel="Readouts / bin",
-                 title=f"{label} (n={len(vals):,})")
+        if label == "T0-T1" and ungated_t0_t1:
+            common_edges = np.histogram_bin_edges(ungated_t0_t1, bins=120)
+            axis.hist(ungated_t0_t1, bins=common_edges, histtype="step", color="tab:orange",
+                      label=f"all T0/T1 pairs (n={len(ungated_t0_t1):,})")
+            if vals:
+                axis.hist(vals, bins=common_edges, histtype="step", color="tab:blue",
+                          label=f"both prompt gates (n={len(vals):,})")
+            axis.legend(fontsize=8)
+        axis.set(xlabel="Corrected detector-time difference (ns)", ylabel="Readouts / bin",
+                 title=f"{label} (prompt-gated n={len(vals):,})")
+        if label in ("T0-HD0", "T0-HD5", "T0-HD8"):
+            hd_id = int(label.split("HD", 1)[1])
+            channel = next(ch for ch, element in HD_CHANNELS.items() if element == hd_id)
+            bank = ("different ref banks (T0=31, HD=46); uncalibrated"
+                    if channel > 31 else "same ref 31; detector offsets remain")
+            axis.set_title(f"{label}: {bank}\nprompt-gated n={len(vals):,}", fontsize=9)
     fig.suptitle("Beamline prompt-gated diagnostics — no WCTE PMT quality selection")
     fig.tight_layout()
     save_data(fig, args.output_dir / "beamline_prompt_tof_and_t5.png")
@@ -257,8 +312,13 @@ def run(args):
                "prompt_peak_bin_width_ns": args.peak_bin_ns,
                "prompt_gate_centers": gates,
                "tof_counts": {name: len(values) for name, values in tofs.items()},
+               "t0_t1_prompt_gate_counts": gate_counts,
                "t5_end_multiplicity": multiplicities.tolist(),
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity."}
+    summary["clock_interpretation_note"] = (
+        "TOF histograms are corrected detector-time differences, not yet calibrated physical TOFs. "
+        "T0 uses reference 31; HD0/HD5 use reference 46 while HD8 uses 31. "
+        "Even same-reference channels retain detector/electronics offsets.")
     (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"Processed {stop-start:,} readouts; {len(rows):,} passed beamline reference/digitiser quality")
     print(f"Prompt gates: ±{args.prompt_half_width_ns:g} ns around fixed main-peak centers")
@@ -276,7 +336,7 @@ def parser():
     result.add_argument("--max-events", type=int, default=1_000_000)
     result.add_argument("--prompt-half-width-ns", type=float, default=40.0)
     result.add_argument("--peak-bin-ns", type=float, default=2.0)
-    result.add_argument("--end-diff-range-ns", type=float, default=40.0)
+    result.add_argument("--end-diff-range-ns", type=float, default=20.0)
     return result
 
 
