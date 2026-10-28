@@ -379,6 +379,51 @@ def plot_basic_cluster_diagnostics(output_dir: Path, multiplicities: Counter[int
     plt.close(fig)
 
 
+def plot_raw_hit_diagnostics(output_dir: Path, time_hist: np.ndarray,
+                            charge_hist: np.ndarray, time_charge_hist: np.ndarray,
+                            time_edges: np.ndarray, charge_edges: np.ndarray,
+                            hit_count: int, out_of_time_range: int,
+                            nonpositive_charge: int, charge_overflow: int) -> None:
+    """Plot selected-readout PMT hits before the burst finder is run."""
+    fig, axis = plt.subplots(figsize=(10, 5), constrained_layout=True)
+    axis.stairs(time_hist, time_edges, color="tab:blue", linewidth=1.5)
+    axis.set(xlabel="Calibrated PMT hit time in readout window (ns)",
+             ylabel="PMT hits / bin",
+             title=f"Raw PMT hit times before clustering (n={hit_count:,}; selected readouts)")
+    axis.grid(alpha=0.2)
+    save_data_plot(fig, output_dir / "raw_pmt_hit_times_preclustering.png", dpi=170)
+    plt.close(fig)
+
+    fig, axis = plt.subplots(figsize=(9, 5), constrained_layout=True)
+    axis.stairs(charge_hist, charge_edges, color="tab:purple", linewidth=1.5)
+    axis.set(xlabel="PMT hit charge (input units; positive charges)",
+             ylabel="PMT hits / bin",
+             title=f"Raw PMT hit charges before clustering (n={int(charge_hist.sum()):,})")
+    axis.grid(alpha=0.2)
+    note = f"nonpositive: {nonpositive_charge:,}; >{charge_edges[-1]:g}: {charge_overflow:,}"
+    axis.text(0.99, 0.97, note, transform=axis.transAxes, ha="right", va="top",
+              fontsize=9, bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none"})
+    save_data_plot(fig, output_dir / "raw_pmt_hit_charges_preclustering.png", dpi=170)
+    plt.close(fig)
+
+    fig, axis = plt.subplots(figsize=(10, 6), constrained_layout=True)
+    positive = time_charge_hist[time_charge_hist > 0]
+    if positive.size:
+        mesh = axis.pcolormesh(time_edges, charge_edges, time_charge_hist.T,
+                               norm=LogNorm(vmin=1, vmax=max(positive.max(), 2)),
+                               shading="auto", cmap="viridis")
+        fig.colorbar(mesh, ax=axis, label="PMT hits / bin (log scale)")
+    else:
+        axis.text(0.5, 0.5, "No positive-charge hits in plotted range",
+                  transform=axis.transAxes, ha="center", va="center")
+    axis.set(xlabel="Calibrated PMT hit time in readout window (ns)",
+             ylabel="PMT hit charge (input units)",
+             title="Raw PMT hit charge versus time before clustering")
+    axis.grid(alpha=0.15)
+    save_data_plot(fig, output_dir / "raw_pmt_charge_vs_time_preclustering.png", dpi=170)
+    plt.close(fig)
+
+
 def make_diagnostic_veto_comparison(output_dir: Path, prompt_residuals: dict[int, list[float]],
                                     eligible_prompt_windows: int, *,
                                     t0_window_ns: float, pmt_hd_window_ns: float,
@@ -497,6 +542,13 @@ def run(args: argparse.Namespace) -> dict:
     all_burst_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
     delayed_absolute_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
     delayed_time_hist = np.zeros(len(delay_time_edges) - 1, dtype=np.int64)
+    raw_charge_edges = np.linspace(0, 500, 101)
+    raw_hit_time_hist = np.zeros(len(cluster_time_edges) - 1, dtype=np.int64)
+    raw_hit_charge_hist = np.zeros(len(raw_charge_edges) - 1, dtype=np.int64)
+    raw_hit_time_charge_hist = np.zeros((len(cluster_time_edges) - 1,
+                                         len(raw_charge_edges) - 1), dtype=np.int64)
+    raw_hit_count = raw_hit_out_of_time_range = 0
+    raw_nonpositive_charge = raw_charge_overflow = 0
     alignment_candidates: list[float] = []
     with uproot.open(args.input_root) as root:
         tree = root["WCTEReadoutWindows"]
@@ -611,6 +663,22 @@ def run(args: argparse.Namespace) -> dict:
                             "gap_ns": gap})
                         t0_hist += np.histogram([gap], bins=edges)[0]
                     times, charges, pmts = _hits(event)
+                    # Accumulate hit-level quantities before the clustering finder.
+                    # This lets us check whether the bunch comb is already present
+                    # in calibrated PMT hits rather than introduced by burst finding.
+                    raw_hit_count += len(times)
+                    raw_hit_time_hist += np.histogram(times, bins=cluster_time_edges)[0]
+                    raw_hit_out_of_time_range += int(np.count_nonzero(
+                        (times < cluster_time_edges[0]) | (times >= cluster_time_edges[-1])))
+                    raw_nonpositive_charge += int(np.count_nonzero(charges <= 0))
+                    positive = charges > 0
+                    raw_charge_overflow += int(np.count_nonzero(charges[positive] >= raw_charge_edges[-1]))
+                    positive_in_range = positive & (charges < raw_charge_edges[-1])
+                    raw_hit_charge_hist += np.histogram(
+                        charges[positive_in_range], bins=raw_charge_edges)[0]
+                    raw_hit_time_charge_hist += np.histogram2d(
+                        times[positive_in_range], charges[positive_in_range],
+                        bins=(cluster_time_edges, raw_charge_edges))[0].astype(np.int64)
                     bursts = find_bursts(times, charges, pmts, min_ns=args.min_ns,
                                          max_ns=args.max_ns, bin_ns=args.bin_ns,
                                          width_ns=args.width_ns, min_pmts=args.min_pmts,
@@ -749,6 +817,17 @@ def run(args: argparse.Namespace) -> dict:
                     "prompt_definition": f"Exactly one burst in [{prompt_min}, {prompt_max}) ns; PMT finder thresholds apply",
                     "delayed_definition": f"Burst delay from unique prompt in [{delayed_min}, {delayed_max}] ns; PMT finder thresholds apply",
                 },
+                "raw_hit_diagnostic_counts": {
+                    "selected_readout_pmt_hits": raw_hit_count,
+                    "hits_inside_plotted_time_range": int(raw_hit_time_hist.sum()),
+                    "hits_outside_plotted_time_range": raw_hit_out_of_time_range,
+                    "positive_charge_hits_inside_plotted_range": int(raw_hit_charge_hist.sum()),
+                    "nonpositive_charge_hits": raw_nonpositive_charge,
+                    "positive_charge_hits_at_or_above_plot_max": raw_charge_overflow,
+                    "time_range_ns": [float(cluster_time_edges[0]), float(cluster_time_edges[-1])],
+                    "charge_range_input_units": [float(raw_charge_edges[0]), float(raw_charge_edges[-1])],
+                    "note": "Hit-level diagnostics accumulated from selected, quality-good readouts before find_bursts; charge-time plot uses positive charges below the displayed maximum.",
+                },
                 "selection": args.selection,
                 "tdc_time_mode": tdc_mode,
                 "alignment_candidates": {
@@ -796,6 +875,10 @@ def run(args: argparse.Namespace) -> dict:
                                    delayed_absolute_time_hist, delayed_time_hist,
                                    cluster_time_edges, delay_time_edges,
                                    args.width_ns)
+    plot_raw_hit_diagnostics(args.output_dir, raw_hit_time_hist, raw_hit_charge_hist,
+                             raw_hit_time_charge_hist, cluster_time_edges,
+                             raw_charge_edges, raw_hit_count, raw_hit_out_of_time_range,
+                             raw_nonpositive_charge, raw_charge_overflow)
     pmt_consecutive = sum((histograms[("consecutive", group)] for group in (
         "one_t0_group", "multiple_t0_groups", "no_t0")), np.zeros(len(edges) - 1, dtype=np.int64))
     plot_t0_comparison(args.output_dir / "t0_vs_pmt_gap_histograms.png",
@@ -844,6 +927,11 @@ def run(args: argparse.Namespace) -> dict:
     print("Basic cluster plots:")
     for filename in ("clusters_per_event.png", "hits_per_cluster.png",
                      "prompt_delayed_cluster_times.png", "all_cluster_times_readout.png"):
+        print(f"  {args.output_dir / filename}")
+    print("Raw PMT hit plots (before clustering):")
+    for filename in ("raw_pmt_hit_times_preclustering.png",
+                     "raw_pmt_hit_charges_preclustering.png",
+                     "raw_pmt_charge_vs_time_preclustering.png"):
         print(f"  {args.output_dir / filename}")
     veto = summary["diagnostic_veto_comparison"]
     print("HD/WCTE timing diagnostics:")

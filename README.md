@@ -130,6 +130,20 @@ are also recorded in `summary.json` under `basic_cluster_plot_counts`.
 subset, and delayed candidates against the same unshifted readout-window time
 axis. This includes bursts in readouts without a unique prompt tag and makes
 later-bunch timing visible alongside the selected prompt population.
+To check whether the bunch pattern exists before burst finding, the study also
+writes `raw_pmt_hit_times_preclustering.png`,
+`raw_pmt_hit_charges_preclustering.png`, and
+`raw_pmt_charge_vs_time_preclustering.png`. These use every finite, readout-mask
+accepted calibrated PMT hit in selected quality-good windows, accumulated
+immediately before `find_bursts`; they are therefore hit-level, pre-clustering
+plots, not burst-center plots. The time histogram uses the configured
+`--min-ns`/`--max-ns` range (default 0–10000 ns); the charge plots show positive
+charges below 500 input units, with excluded counts recorded in
+`summary.json` under `raw_hit_diagnostic_counts`. If the ~300 ns comb is already
+visible in the raw hit-time histogram, the burst finder is not creating it
+(though the readout selection, calibration, and detector response can still
+affect its shape). If it is absent there but present in burst times, investigate
+the finder and its thresholds.
 `bursts.csv`, `gaps.csv`, and `t0_group_gaps.csv` preserve per-window values
 and ROOT entry/readout IDs; `summary.json` records counts and thresholds.
 The study now uses TDC references 31/46 by default, and writes

@@ -74,6 +74,12 @@ def test_root_burst_gap_outputs(tmp_path):
     assert (output / "hits_per_cluster.png").stat().st_size > 0
     assert (output / "prompt_delayed_cluster_times.png").stat().st_size > 0
     assert (output / "all_cluster_times_readout.png").stat().st_size > 0
+    assert (output / "raw_pmt_hit_times_preclustering.png").stat().st_size > 0
+    assert (output / "raw_pmt_hit_charges_preclustering.png").stat().st_size > 0
+    assert (output / "raw_pmt_charge_vs_time_preclustering.png").stat().st_size > 0
+    assert summary["raw_hit_diagnostic_counts"]["selected_readout_pmt_hits"] == 8
+    assert summary["raw_hit_diagnostic_counts"]["hits_inside_plotted_time_range"] == 8
+    assert summary["raw_hit_diagnostic_counts"]["positive_charge_hits_inside_plotted_range"] == 8
     assert summary["basic_cluster_plot_counts"] == {
         "all_bursts": 2,
         "unique_prompt_bursts": 1,
