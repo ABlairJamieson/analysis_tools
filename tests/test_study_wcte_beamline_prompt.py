@@ -17,7 +17,7 @@ def test_main_peak_and_production_style_group_average():
 
 
 def test_prompt_gated_beamline_outputs(tmp_path):
-    root_path = tmp_path / "beamline.root"
+    root_path = tmp_path / "WCTE_merged_production_R1827.root"
     ids = [31, 46, *range(8), *range(48, 64), 32, 37, 17]
     corrected_times = [
         1000, 2000,
@@ -46,8 +46,10 @@ def test_prompt_gated_beamline_outputs(tmp_path):
         entry_start=0, max_events=10, prompt_half_width_ns=40,
         peak_bin_ns=2, end_diff_range_ns=40,
     ))
+    assert summary["run_number"] == 1827
     assert summary["beamline_quality_readouts"] == 3
-    assert summary["prompt_gate_centers"]["T0 four-PMT average"]["center_ns"] == 1001.5
+    assert summary["prompt_gate_centers"]["T0 average (4 channels)"]["center_ns"] == 1001.5
+    assert summary["t1_channels"] == [4, 5]
     assert summary["tof_counts"]["T0-T1"] == 3
     assert summary["tof_counts"]["T0-T5"] == 24
     assert summary["tof_counts"]["T0-HD0"] == 3
@@ -55,7 +57,12 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert summary["tof_counts"]["T0-HD8"] == 3
     assert all(row == [0, 0, 3] for row in summary["t5_end_multiplicity"])
     assert (out / "beamline_prompt_peaks_t0_t1.png").stat().st_size > 0
-    assert (out / "beamline_prompt_peaks_t5.png").stat().st_size > 0
-    assert (out / "beamline_prompt_peaks_hd.png").stat().st_size > 0
-    assert (out / "beamline_prompt_tof_and_t5.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_t5_bars_0-3.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_t5_bars_4-7.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_hd_0-3.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_hd_4-7.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_hd_8-11.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_hd_12-14.png").stat().st_size > 0
+    assert (out / "beamline_prompt_tof_page_1.png").stat().st_size > 0
+    assert (out / "t0_channel_correction_comparison.png").stat().st_size > 0
     assert json.loads((out / "summary.json").read_text())["prompt_gate_half_width_ns"] == 40

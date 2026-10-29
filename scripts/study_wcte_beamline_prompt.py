@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 import awkward as ak
@@ -32,7 +33,7 @@ except ModuleNotFoundError as exc:
 
 
 T0_CHANNELS = (0, 1, 2, 3)
-T1_CHANNELS = (4, 5, 6, 7)
+DEFAULT_T1_CHANNELS = (4, 5)
 T5_BARS = tuple((48 + bar, 56 + bar) for bar in range(8))
 HD_CHANNELS = {**{32 + i: i for i in range(7)}, 16: 7,
                **{17 + i: i + 8 for i in range(7)}}
@@ -77,14 +78,18 @@ def first_hits(event_ids, event_times) -> tuple[dict[int, float], tuple[float | 
     return by_channel, refs
 
 
-def save_data(fig, path: Path):
-    fig.text(0.99, 0.995, "data", ha="right", va="top", fontsize=10,
+def save_data(fig, path: Path, run_number: int | str | None = None):
+    run_tag = f" | Run {run_number}" if run_number is not None else ""
+    fig.text(0.99, 0.995, f"data{run_tag}", ha="right", va="top", fontsize=10,
              color="#7f1d1d", weight="bold")
     fig.savefig(path, dpi=160, bbox_inches="tight")
     plt.close(fig)
 
 
-def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, dict], out: Path):
+def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, dict],
+                            out: Path, run_number: int | str | None = None,
+                            t0_label: str = "T0 four-PMT average",
+                            t1_label: str = "T1 average"):
     """Write separate, readable pages for T0/T1, T5 bars, and HD channels."""
     def draw(axis, label, values):
         data = np.asarray(values, dtype=float)
@@ -103,44 +108,52 @@ def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, di
         axis.set_title(f"{label} (n={len(data):,})")
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
-    for axis, label in zip(axes, ("T0 four-PMT average", "T1 four-PMT average")):
+    for axis, label in zip(axes, (t0_label, t1_label)):
         draw(axis, label, samples[label])
         axis.set_xlabel("Reference-corrected time (ns)")
     fig.suptitle("T0/T1 main prompt peaks and fixed gates")
     fig.tight_layout()
-    save_data(fig, out.with_name("beamline_prompt_peaks_t0_t1.png"))
+    save_data(fig, out.with_name("beamline_prompt_peaks_t0_t1.png"), run_number)
 
-    fig, axes = plt.subplots(4, 2, figsize=(13, 13), sharex=False)
-    for bar, axis in enumerate(axes.flat):
-        for end in range(2):
-            label = f"T5 bar {bar} end {end}"
-            values = np.asarray(samples[label], dtype=float)
-            values = values[np.isfinite(values)]
-            if len(values):
-                axis.hist(values, bins=120, histtype="step", label=f"end {end} (n={len(values):,})")
-            center = gates[label]["center_ns"]
-            if np.isfinite(center):
-                axis.axvspan(center - gates[label]["half_width_ns"],
-                             center + gates[label]["half_width_ns"], alpha=0.12)
-                axis.axvline(center, linestyle="--", linewidth=0.9)
-        axis.set(title=f"T5 bar {bar}", xlabel="Reference-corrected time (ns)", ylabel="Hits / bin")
-        axis.legend(fontsize=8)
-    fig.suptitle("T5 end-time peaks by bar; dashed lines mark per-end main peaks")
-    fig.tight_layout()
-    save_data(fig, out.with_name("beamline_prompt_peaks_t5.png"))
+    for page, first_bar in enumerate((0, 4), start=1):
+        fig, axes = plt.subplots(2, 2, figsize=(13, 9), sharex=False)
+        for bar, axis in zip(range(first_bar, first_bar + 4), axes.flat):
+            for end in range(2):
+                label = f"T5 bar {bar} end {end}"
+                values = np.asarray(samples[label], dtype=float)
+                values = values[np.isfinite(values)]
+                if len(values):
+                    axis.hist(values, bins=120, histtype="step", label=f"end {end} (n={len(values):,})")
+                center = gates[label]["center_ns"]
+                if np.isfinite(center):
+                    axis.axvspan(center - gates[label]["half_width_ns"],
+                                 center + gates[label]["half_width_ns"], alpha=0.12)
+                    axis.axvline(center, linestyle="--", linewidth=0.9)
+            axis.set(title=f"T5 bar {bar}", xlabel="Reference-corrected time (ns)", ylabel="Hits / bin")
+            axis.legend(fontsize=8)
+        fig.suptitle(f"T5 prompt peaks, bars {first_bar}-{first_bar + 3}; per-end main peaks")
+        fig.tight_layout()
+        save_data(fig, out.with_name(f"beamline_prompt_peaks_t5_bars_{first_bar}-{first_bar + 3}.png"), run_number)
 
-    fig, axes = plt.subplots(5, 3, figsize=(15, 14), sharex=False)
-    for hd, axis in enumerate(axes.flat):
-        label = f"HD{hd}"
-        draw(axis, label, samples[label])
-        axis.set_xlabel("Reference-corrected time (ns)")
-    fig.suptitle("HD element main prompt peaks and fixed gates")
-    fig.tight_layout()
-    save_data(fig, out.with_name("beamline_prompt_peaks_hd.png"))
+    for first_hd in range(0, 15, 4):
+        last_hd = min(first_hd + 3, 14)
+        labels = list(range(first_hd, last_hd + 1))
+        fig, axes = plt.subplots(2, 2, figsize=(13, 9), sharex=False)
+        for hd, axis in zip(labels, axes.flat):
+            label = f"HD{hd}"
+            draw(axis, label, samples[label])
+            axis.set_xlabel("Reference-corrected time (ns)")
+        for axis in axes.flat[len(labels):]:
+            axis.set_visible(False)
+        fig.suptitle(f"HD element prompt peaks, HD{first_hd}-HD{last_hd}")
+        fig.tight_layout()
+        save_data(fig, out.with_name(f"beamline_prompt_peaks_hd_{first_hd}-{last_hd}.png"), run_number)
 
 
 def run(args):
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    t0_channels = tuple(getattr(args, "t0_channels", T0_CHANNELS))
+    t1_channels = tuple(getattr(args, "t1_channels", DEFAULT_T1_CHANNELS))
     with uproot.open(args.input_root) as root:
         tree = root[args.tree]
         missing = set(REQUIRED) - set(tree.keys())
@@ -148,12 +161,21 @@ def run(args):
             raise ValueError("Missing ROOT branches: " + ", ".join(sorted(missing)))
         available = set(tree.keys())
         has_quality = "vme_digi_issues_bitmask" in available
-        optional = [name for name in ("vme_digi_issues_bitmask",)
+        optional = [name for name in ("vme_digi_issues_bitmask", "run_id")
                     if name in available]
         start = args.entry_start
         stop = min(tree.num_entries, start + args.max_events)
         arrays = tree.arrays([*REQUIRED, *optional], entry_start=start, entry_stop=stop,
                              library="ak")
+        run_number = None
+        if "run_id" in optional and stop > start:
+            try:
+                run_number = int(ak.to_list(arrays["run_id"])[0])
+            except (TypeError, ValueError):
+                run_number = str(ak.to_list(arrays["run_id"])[0])
+        if run_number is None:
+            match = re.search(r"(?:^|[^A-Za-z])R?(\d{4,})(?:[^0-9]|$)", args.input_root.name)
+            run_number = int(match.group(1)) if match else None
 
     rows = []
     reference_good = 0
@@ -175,8 +197,8 @@ def run(args):
         quality_good = refs_good and digi_good
         if not quality_good:
             continue
-        t0 = robust_group_mean(times, T0_CHANNELS)
-        t1 = robust_group_mean(times, T1_CHANNELS)
+        t0 = robust_group_mean(times, t0_channels)
+        t1 = robust_group_mean(times, t1_channels)
         t5_bars = []
         for bar, (left, right) in enumerate(T5_BARS):
             if left in times and right in times:
@@ -189,8 +211,33 @@ def run(args):
 
     # Determine every fixed peak once from beamline-quality readouts. T5 gates
     # are per bar because cable/geometry offsets can differ between bars.
-    samples = {"T0 four-PMT average": [r["t0"] for r in rows if r["t0"] is not None],
-               "T1 four-PMT average": [r["t1"] for r in rows if r["t1"] is not None]}
+    t0_residuals = {ch: [] for ch in t0_channels}
+    for row in rows:
+        if row["t0"] is None:
+            continue
+        event_median = float(np.median([row["times"][ch] for ch in t0_channels]))
+        for channel in t0_channels:
+            t0_residuals[channel].append(row["times"][channel] - event_median)
+    # This equalization is estimated from this same run solely as a diagnostic;
+    # it is not an official calibration and is not applied to the TOF selection.
+    t0_relative_offsets = {ch: float(np.median(values)) if values else 0.0
+                           for ch, values in t0_residuals.items()}
+    t0_comparison = {"reference_only": [], "reference_plus_data_derived_relative_offsets": []}
+    t0_residuals_for_plot = {ch: [] for ch in t0_channels}
+    for row in rows:
+        if row["t0"] is None:
+            continue
+        vals = [row["times"][ch] for ch in t0_channels]
+        median = float(np.median(vals))
+        for channel in t0_channels:
+            t0_residuals_for_plot[channel].append(row["times"][channel] - median)
+        t0_comparison["reference_only"].append(row["t0"])
+        t0_comparison["reference_plus_data_derived_relative_offsets"].append(
+            float(np.mean([row["times"][ch] - t0_relative_offsets[ch] for ch in t0_channels])))
+    t0_label = f"T0 average ({len(t0_channels)} channels)"
+    t1_label = f"T1 average ({len(t1_channels)} channels)"
+    samples = {t0_label: t0_comparison["reference_only"],
+               t1_label: [r["t1"] for r in rows if r["t1"] is not None]}
     for bar in range(8):
         samples[f"T5 bar {bar} paired-end mean"] = [mean for r in rows for b, mean, _ in r["t5_bars"] if b == bar]
         for end, channel in enumerate(T5_BARS[bar]):
@@ -203,7 +250,30 @@ def run(args):
         center, peak_count, n = main_peak(values, bin_ns=args.peak_bin_ns)
         gates[label] = {"center_ns": center, "half_width_ns": args.prompt_half_width_ns,
                         "peak_bin_count": int(peak_count), "entries_used": n}
-    plot_peak_distributions(samples, gates, args.output_dir / "beamline_prompt_peaks.png")
+    plot_peak_distributions(samples, gates, args.output_dir / "beamline_prompt_peaks.png",
+                            run_number, t0_label, t1_label)
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    baseline = np.asarray(t0_comparison["reference_only"], dtype=float)
+    equalized = np.asarray(t0_comparison["reference_plus_data_derived_relative_offsets"], dtype=float)
+    if len(baseline):
+        edges = np.histogram_bin_edges(np.concatenate([baseline, equalized]), bins=100)
+        axes[0].hist(baseline, bins=edges, histtype="step", label="reference subtraction only")
+        axes[0].hist(equalized, bins=edges, histtype="step",
+                     label="+ run-derived relative channel offsets")
+        axes[0].legend(fontsize=8)
+    axes[0].set(xlabel="T0 average time (ns)", ylabel="Readouts / bin",
+                title="T0 timing: no per-channel offsets vs diagnostic equalization")
+    for channel, values in t0_residuals_for_plot.items():
+        if values:
+            axes[1].hist(values, bins=100, histtype="step", label=f"T0 channel {channel}")
+    axes[1].axvline(0, color="black", linewidth=0.8)
+    axes[1].set(xlabel="Channel time − same-event T0 median (ns)", ylabel="Hits / bin",
+                title="T0 per-channel residuals before equalization")
+    axes[1].legend(fontsize=8)
+    fig.suptitle("Timing-correction comparison (run-derived offsets are diagnostic only)")
+    fig.tight_layout()
+    save_data(fig, args.output_dir / "t0_channel_correction_comparison.png", run_number)
 
     def in_gate(label, value):
         center = gates[label]["center_ns"]
@@ -217,8 +287,8 @@ def run(args):
                    "both_groups_present_before_gates": 0}
     t5_bar_tofs = [[] for _ in range(8)]
     for row in rows:
-        t0_ok = in_gate("T0 four-PMT average", row["t0"])
-        t1_ok = in_gate("T1 four-PMT average", row["t1"])
+        t0_ok = in_gate(t0_label, row["t0"])
+        t1_ok = in_gate(t1_label, row["t1"])
         gate_counts["t0_in_gate"] += int(t0_ok)
         gate_counts["t1_in_gate"] += int(t1_ok)
         if row["t0"] is not None and row["t1"] is not None:
@@ -248,49 +318,57 @@ def run(args):
                 end_differences[bar].append(row["times"][left] - row["times"][right])
     tofs["T0-T5"] = [x for values in t5_bar_tofs for x in values]
 
-    fig, axes = plt.subplots(2, 4, figsize=(17, 8))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     width = 0.25
     x = np.arange(8)
     for mult, color, label in ((0, "tab:gray", "0 ends"), (1, "tab:orange", "1 end"), (2, "tab:blue", "2 ends")):
-        axes[0, 0].bar(x + (mult - 1) * width, multiplicities[:, mult], width=width,
-                       color=color, label=label)
-    axes[0, 0].set(xticks=x, xlabel="T5 bar", ylabel="Readouts", title="Prompt-gated T5 end multiplicity")
-    axes[0, 0].set_yscale("log")
-    axes[0, 0].set_ylim(bottom=0.5)
-    axes[0, 0].legend()
+        axes[0].bar(x + (mult - 1) * width, multiplicities[:, mult], width=width,
+                    color=color, label=label)
+    axes[0].set(xticks=x, xlabel="T5 bar", ylabel="Readouts", title="Prompt-gated T5 end multiplicity")
+    axes[0].set_yscale("log")
+    axes[0].set_ylim(bottom=0.5)
+    axes[0].legend()
     for bar, vals in enumerate(end_differences):
         if vals:
-            axes[0, 1].hist(vals, bins=80, range=(-args.end_diff_range_ns, args.end_diff_range_ns),
-                            histtype="step", label=f"bar {bar}")
-    axes[0, 1].set(xlabel="T5 left − right end time (ns)", ylabel="Paired hits / bin",
-                   title="Prompt-gated T5 end-time differences")
-    axes[0, 1].set_xlim(-args.end_diff_range_ns, args.end_diff_range_ns)
-    axes[0, 1].legend(ncol=2, fontsize=8)
-    tof_axes = (axes[0, 2], axes[0, 3], axes[1, 0], axes[1, 1], axes[1, 2])
-    # Draw each TOF on its own scale; the detector separations and offsets differ.
-    for axis, label in zip(tof_axes, tofs):
-        vals = tofs[label]
-        if vals:
-            axis.hist(vals, bins=120, histtype="step", color="tab:blue")
-        if label == "T0-T1" and ungated_t0_t1:
-            common_edges = np.histogram_bin_edges(ungated_t0_t1, bins=120)
-            axis.hist(ungated_t0_t1, bins=common_edges, histtype="step", color="tab:orange",
-                      label=f"all T0/T1 pairs (n={len(ungated_t0_t1):,})")
+            axes[1].hist(vals, bins=80, range=(-args.end_diff_range_ns, args.end_diff_range_ns),
+                         histtype="step", label=f"bar {bar}")
+    axes[1].set(xlabel="T5 left − right end time (ns)", ylabel="Paired hits / bin",
+                title="Prompt-gated T5 end-time differences")
+    axes[1].set_xlim(-args.end_diff_range_ns, args.end_diff_range_ns)
+    axes[1].legend(ncol=2, fontsize=8)
+    save_data(fig, args.output_dir / "beamline_prompt_t5_diagnostics.png", run_number)
+
+    # TOF panels are split into pages of no more than four plots.
+    tof_items = list(tofs.items())
+    for page_start in range(0, len(tof_items), 4):
+        page_items = tof_items[page_start:page_start + 4]
+        rows_n = 2
+        cols_n = 2
+        fig, axes = plt.subplots(rows_n, cols_n, figsize=(12, 8))
+        for axis, (label, vals) in zip(axes.flat, page_items):
             if vals:
-                axis.hist(vals, bins=common_edges, histtype="step", color="tab:blue",
-                          label=f"both prompt gates (n={len(vals):,})")
-            axis.legend(fontsize=8)
-        axis.set(xlabel="Corrected detector-time difference (ns)", ylabel="Readouts / bin",
-                 title=f"{label} (prompt-gated n={len(vals):,})")
-        if label in ("T0-HD0", "T0-HD5", "T0-HD8"):
-            hd_id = int(label.split("HD", 1)[1])
-            channel = next(ch for ch, element in HD_CHANNELS.items() if element == hd_id)
-            bank = ("different ref banks (T0=31, HD=46); uncalibrated"
-                    if channel > 31 else "same ref 31; detector offsets remain")
-            axis.set_title(f"{label}: {bank}\nprompt-gated n={len(vals):,}", fontsize=9)
-    fig.suptitle("Beamline prompt-gated diagnostics — no WCTE PMT quality selection")
-    fig.tight_layout()
-    save_data(fig, args.output_dir / "beamline_prompt_tof_and_t5.png")
+                axis.hist(vals, bins=120, histtype="step", color="tab:blue")
+            if label == "T0-T1" and ungated_t0_t1:
+                common_edges = np.histogram_bin_edges(ungated_t0_t1, bins=120)
+                axis.hist(ungated_t0_t1, bins=common_edges, histtype="step", color="tab:orange",
+                          label=f"all T0/T1 pairs (n={len(ungated_t0_t1):,})")
+                if vals:
+                    axis.hist(vals, bins=common_edges, histtype="step", color="tab:blue",
+                              label=f"both prompt gates (n={len(vals):,})")
+                axis.legend(fontsize=8)
+            axis.set(xlabel="Corrected detector-time difference (ns)", ylabel="Readouts / bin",
+                     title=f"{label} (prompt-gated n={len(vals):,})")
+            if label in ("T0-HD0", "T0-HD5", "T0-HD8"):
+                hd_id = int(label.split("HD", 1)[1])
+                channel = next(ch for ch, element in HD_CHANNELS.items() if element == hd_id)
+                bank = ("different ref banks (T0=31, HD=46); uncalibrated"
+                        if channel > 31 else "same ref 31; detector offsets remain")
+                axis.set_title(f"{label}: {bank}\nprompt-gated n={len(vals):,}", fontsize=9)
+        for axis in axes.flat[len(page_items):]:
+            axis.set_visible(False)
+        fig.suptitle("Beamline prompt-gated timing (no WCTE PMT quality selection)")
+        fig.tight_layout()
+        save_data(fig, args.output_dir / f"beamline_prompt_tof_page_{page_start // 4 + 1}.png", run_number)
 
     with (args.output_dir / "prompt_tof_values.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
@@ -304,6 +382,7 @@ def run(args):
             for multiplicity in range(3):
                 writer.writerow([bar, multiplicity, int(multiplicities[bar, multiplicity])])
     summary = {"input": str(args.input_root), "tree": args.tree,
+               "run_number": run_number,
                "processed_entries": stop - start, "beamline_quality_readouts": len(rows),
                "readouts_with_both_reference_channels": reference_good,
                "missing_reference_counts": dict(missing_reference),
@@ -311,10 +390,22 @@ def run(args):
                "prompt_gate_half_width_ns": args.prompt_half_width_ns,
                "prompt_peak_bin_width_ns": args.peak_bin_ns,
                "prompt_gate_centers": gates,
+               "t0_channels": list(t0_channels), "t1_channels": list(t1_channels),
+               "t1_channel_presence_counts": {str(ch): sum(ch in row["times"] for row in rows)
+                                              for ch in (4, 5, 6, 7)},
+               "t0_data_derived_relative_channel_offsets_ns": {
+                   str(ch): offset for ch, offset in t0_relative_offsets.items()},
+               "t0_time_comparison_widths_ns": {
+                   mode: {"median": float(np.median(values)),
+                          "q16": float(np.percentile(values, 16)),
+                          "q84": float(np.percentile(values, 84)),
+                          "q84_minus_q16": float(np.percentile(values, 84) - np.percentile(values, 16))}
+                   for mode, values in t0_comparison.items() if values},
                "tof_counts": {name: len(values) for name, values in tofs.items()},
                "t0_t1_prompt_gate_counts": gate_counts,
                "t5_end_multiplicity": multiplicities.tolist(),
-               "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity."}
+               "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
+               "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates."}
     summary["clock_interpretation_note"] = (
         "TOF histograms are corrected detector-time differences, not yet calibrated physical TOFs. "
         "T0 uses reference 31; HD0/HD5 use reference 46 while HD8 uses 31. "
@@ -334,6 +425,10 @@ def parser():
     result.add_argument("--output-dir", type=Path, required=True)
     result.add_argument("--entry-start", type=int, default=0)
     result.add_argument("--max-events", type=int, default=1_000_000)
+    result.add_argument("--t0-channels", type=int, nargs=4, default=T0_CHANNELS,
+                        help="Four T0 TDC channels used for the event average")
+    result.add_argument("--t1-channels", type=int, nargs="+", default=DEFAULT_T1_CHANNELS,
+                        help="T1 TDC channels to average (default 4 5; choose 4 5 6 7 if four are present)")
     result.add_argument("--prompt-half-width-ns", type=float, default=40.0)
     result.add_argument("--peak-bin-ns", type=float, default=2.0)
     result.add_argument("--end-diff-range-ns", type=float, default=20.0)

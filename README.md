@@ -74,6 +74,49 @@ good-PMT channel list is not. Pass `--selection beam` to omit the HD
 requirement or `--selection all` to inspect every quality-good window.
 Use `--entry-start` or `--readout-numbers` to inspect specific windows.
 
+### Tagged-gamma selection with `DataLoader`
+
+`DataLoader.apply_tagged_gamma_selection()` enables a separate, configurable
+selection for downstream analysis. It requires reference-corrected T0 channels
+0–3, T2 channel 8, and (by default) at least one HD TDC channel. It does not
+enable the unrelated T5 multiplicity cut. The WCTE mPMT clean-window check is
+on by default; existing VME quality cuts can be enabled separately with
+`apply_vme_event_quality_cuts()`. HD QDC thresholds and the HC2 QDC veto are
+off unless explicitly configured: confirm the QDC channel mapping and current
+hardware behavior before using them. In particular, the HD charge thresholds
+from the tagged-gamma selection slides are not silently applied.
+
+The T0–T2 TOF window is also opt-in. If used, pass the analysis's relative
+per-channel TDC offsets for every selected T0/T2 channel; offsets are
+subtracted once after the standard channel-31/channel-46 reference
+subtraction. Do not pass a calibration a second time if it is already included
+in the input branch. Example (replace the zero offsets with validated
+run/configuration values before using the TOF interval as a physics cut):
+
+```python
+from analysis_tools import DataLoader
+
+offsets_ns = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 8: 0.0}
+with DataLoader("/path/to/WCTE_merged_production_R1827.root") as data:
+    data.apply_tagged_gamma_selection(
+        t0_tdc_channels=(0, 1, 2, 3),
+        t2_tdc_channels=(8,),
+        t0_t2_tof_range_ns=(3.012, 4.296),
+        tdc_channel_offsets_ns=offsets_ns,
+        require_clean_mpmt=True,
+        require_hodoscope_hit=True,
+    )
+    for batch in data.iterate(step_size="100 MB"):
+        # Analyze the selected readout windows.
+        pass
+```
+
+T1 is not required for this T0–T2 tagged-gamma selection. In the prompt timing
+diagnostic, T1 uses configurable channels (default 4 and 5); check the per-run
+channel-presence counts before interpreting its TOF. The script writes no more
+than four panels per timing-plot page and stamps `data | Run N` when a run ID
+branch or run number in the ROOT filename is available.
+
 Each selected window gets a PNG with separate WCTE PMT, beamline TDC, and
 T5 panels. The panels deliberately have independent clock origins: an
 offset between PMT, beamline, and T5 systems has not been established.
