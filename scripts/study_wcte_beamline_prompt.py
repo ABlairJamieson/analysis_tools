@@ -33,7 +33,7 @@ except ModuleNotFoundError as exc:
 
 
 T0_CHANNELS = (0, 1, 2, 3)
-DEFAULT_T1_CHANNELS = (4, 5)
+T2_CHANNELS = (8,)
 T5_BARS = tuple((48 + bar, 56 + bar) for bar in range(8))
 HD_CHANNELS = {**{32 + i: i for i in range(7)}, 16: 7,
                **{17 + i: i + 8 for i in range(7)}}
@@ -89,8 +89,8 @@ def save_data(fig, path: Path, run_number: int | str | None = None):
 def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, dict],
                             out: Path, run_number: int | str | None = None,
                             t0_label: str = "T0 four-PMT average",
-                            t1_label: str = "T1 average"):
-    """Write separate, readable pages for T0/T1, T5 bars, and HD channels."""
+                            t2_label: str = "T2"):
+    """Write separate, readable pages for T0/T2, T5 bars, and HD channels."""
     def draw(axis, label, values):
         data = np.asarray(values, dtype=float)
         data = data[np.isfinite(data)]
@@ -108,12 +108,12 @@ def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, di
         axis.set_title(f"{label} (n={len(data):,})")
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
-    for axis, label in zip(axes, (t0_label, t1_label)):
+    for axis, label in zip(axes, (t0_label, t2_label)):
         draw(axis, label, samples[label])
         axis.set_xlabel("Reference-corrected time (ns)")
-    fig.suptitle("T0/T1 main prompt peaks and fixed gates")
+    fig.suptitle("T0/T2 main prompt peaks and fixed gates")
     fig.tight_layout()
-    save_data(fig, out.with_name("beamline_prompt_peaks_t0_t1.png"), run_number)
+    save_data(fig, out.with_name("beamline_prompt_peaks_t0_t2.png"), run_number)
 
     for page, first_bar in enumerate((0, 4), start=1):
         fig, axes = plt.subplots(2, 2, figsize=(13, 9), sharex=False)
@@ -153,7 +153,7 @@ def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, di
 def run(args):
     args.output_dir.mkdir(parents=True, exist_ok=True)
     t0_channels = tuple(getattr(args, "t0_channels", T0_CHANNELS))
-    t1_channels = tuple(getattr(args, "t1_channels", DEFAULT_T1_CHANNELS))
+    t2_channels = tuple(getattr(args, "t2_channels", T2_CHANNELS))
     with uproot.open(args.input_root) as root:
         tree = root[args.tree]
         missing = set(REQUIRED) - set(tree.keys())
@@ -198,7 +198,7 @@ def run(args):
         if not quality_good:
             continue
         t0 = robust_group_mean(times, t0_channels)
-        t1 = robust_group_mean(times, t1_channels)
+        t2 = robust_group_mean(times, t2_channels)
         t5_bars = []
         for bar, (left, right) in enumerate(T5_BARS):
             if left in times and right in times:
@@ -206,7 +206,7 @@ def run(args):
                 mean = (times[left] + times[right]) / 2
                 t5_bars.append((bar, mean, end_delta))
         hd_times = {HD_CHANNELS[ch]: times[ch] for ch in HD_CHANNELS if ch in times}
-        rows.append({"entry": start + i, "times": times, "t0": t0, "t1": t1,
+        rows.append({"entry": start + i, "times": times, "t0": t0, "t2": t2,
                      "t5_bars": t5_bars, "hd": hd_times})
 
     # Determine every fixed peak once from beamline-quality readouts. T5 gates
@@ -235,9 +235,9 @@ def run(args):
         t0_comparison["reference_plus_data_derived_relative_offsets"].append(
             float(np.mean([row["times"][ch] - t0_relative_offsets[ch] for ch in t0_channels])))
     t0_label = f"T0 average ({len(t0_channels)} channels)"
-    t1_label = f"T1 average ({len(t1_channels)} channels)"
+    t2_label = f"T2 average ({len(t2_channels)} channels)"
     samples = {t0_label: t0_comparison["reference_only"],
-               t1_label: [r["t1"] for r in rows if r["t1"] is not None]}
+               t2_label: [r["t2"] for r in rows if r["t2"] is not None]}
     for bar in range(8):
         samples[f"T5 bar {bar} paired-end mean"] = [mean for r in rows for b, mean, _ in r["t5_bars"] if b == bar]
         for end, channel in enumerate(T5_BARS[bar]):
@@ -251,7 +251,7 @@ def run(args):
         gates[label] = {"center_ns": center, "half_width_ns": args.prompt_half_width_ns,
                         "peak_bin_count": int(peak_count), "entries_used": n}
     plot_peak_distributions(samples, gates, args.output_dir / "beamline_prompt_peaks.png",
-                            run_number, t0_label, t1_label)
+                            run_number, t0_label, t2_label)
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     baseline = np.asarray(t0_comparison["reference_only"], dtype=float)
@@ -266,10 +266,13 @@ def run(args):
                 title="T0 timing: no per-channel offsets vs diagnostic equalization")
     for channel, values in t0_residuals_for_plot.items():
         if values:
-            axes[1].hist(values, bins=100, histtype="step", label=f"T0 channel {channel}")
+            axes[1].hist(values, bins=100,
+                         range=(-args.t0_residual_range_ns, args.t0_residual_range_ns),
+                         histtype="step", label=f"T0 channel {channel}")
     axes[1].axvline(0, color="black", linewidth=0.8)
-    axes[1].set(xlabel="Channel time − same-event T0 median (ns)", ylabel="Hits / bin",
-                title="T0 per-channel residuals before equalization")
+    axes[1].set(xlim=(-args.t0_residual_range_ns, args.t0_residual_range_ns),
+                xlabel="Channel time − same-event T0 median (ns)", ylabel="Hits / bin",
+                title=f"T0 channel residuals before equalization (±{args.t0_residual_range_ns:g} ns view)")
     axes[1].legend(fontsize=8)
     fig.suptitle("Timing-correction comparison (run-derived offsets are diagnostic only)")
     fig.tight_layout()
@@ -281,22 +284,22 @@ def run(args):
 
     multiplicities = np.zeros((8, 3), dtype=np.int64)
     end_differences = [[] for _ in range(8)]
-    tofs = {"T0-T1": [], "T0-T5": [], "T0-HD0": [], "T0-HD5": [], "T0-HD8": []}
-    ungated_t0_t1 = []
-    gate_counts = {"t0_in_gate": 0, "t1_in_gate": 0, "both_in_gate": 0,
+    tofs = {"T2-T0": [], "T0-T5": [], "T0-HD0": [], "T0-HD5": [], "T0-HD8": []}
+    ungated_t2_t0 = []
+    gate_counts = {"t0_in_gate": 0, "t2_in_gate": 0, "both_in_gate": 0,
                    "both_groups_present_before_gates": 0}
     t5_bar_tofs = [[] for _ in range(8)]
     for row in rows:
         t0_ok = in_gate(t0_label, row["t0"])
-        t1_ok = in_gate(t1_label, row["t1"])
+        t2_ok = in_gate(t2_label, row["t2"])
         gate_counts["t0_in_gate"] += int(t0_ok)
-        gate_counts["t1_in_gate"] += int(t1_ok)
-        if row["t0"] is not None and row["t1"] is not None:
+        gate_counts["t2_in_gate"] += int(t2_ok)
+        if row["t0"] is not None and row["t2"] is not None:
             gate_counts["both_groups_present_before_gates"] += 1
-            ungated_t0_t1.append(row["t1"] - row["t0"])
-        if t0_ok and t1_ok:
+            ungated_t2_t0.append(row["t2"] - row["t0"])
+        if t0_ok and t2_ok:
             gate_counts["both_in_gate"] += 1
-            tofs["T0-T1"].append(row["t1"] - row["t0"])
+            tofs["T2-T0"].append(row["t2"] - row["t0"])
         if t0_ok:
             for hd_id in (0, 5, 8):
                 label = f"HD{hd_id}"
@@ -348,15 +351,15 @@ def run(args):
         for axis, (label, vals) in zip(axes.flat, page_items):
             if vals:
                 axis.hist(vals, bins=120, histtype="step", color="tab:blue")
-            if label == "T0-T1" and ungated_t0_t1:
-                common_edges = np.histogram_bin_edges(ungated_t0_t1, bins=120)
-                axis.hist(ungated_t0_t1, bins=common_edges, histtype="step", color="tab:orange",
-                          label=f"all T0/T1 pairs (n={len(ungated_t0_t1):,})")
+            if label == "T2-T0" and ungated_t2_t0:
+                common_edges = np.histogram_bin_edges(ungated_t2_t0, bins=120)
+                axis.hist(ungated_t2_t0, bins=common_edges, histtype="step", color="tab:orange",
+                          label=f"all T2−T0 pairs (n={len(ungated_t2_t0):,})")
                 if vals:
                     axis.hist(vals, bins=common_edges, histtype="step", color="tab:blue",
                               label=f"both prompt gates (n={len(vals):,})")
                 axis.legend(fontsize=8)
-            axis.set(xlabel="Corrected detector-time difference (ns)", ylabel="Readouts / bin",
+            axis.set(xlabel="Reference-corrected detector-time difference (ns)", ylabel="Readouts / bin",
                      title=f"{label} (prompt-gated n={len(vals):,})")
             if label in ("T0-HD0", "T0-HD5", "T0-HD8"):
                 hd_id = int(label.split("HD", 1)[1])
@@ -390,9 +393,7 @@ def run(args):
                "prompt_gate_half_width_ns": args.prompt_half_width_ns,
                "prompt_peak_bin_width_ns": args.peak_bin_ns,
                "prompt_gate_centers": gates,
-               "t0_channels": list(t0_channels), "t1_channels": list(t1_channels),
-               "t1_channel_presence_counts": {str(ch): sum(ch in row["times"] for row in rows)
-                                              for ch in (4, 5, 6, 7)},
+               "t0_channels": list(t0_channels), "t2_channels": list(t2_channels),
                "t0_data_derived_relative_channel_offsets_ns": {
                    str(ch): offset for ch, offset in t0_relative_offsets.items()},
                "t0_time_comparison_widths_ns": {
@@ -402,7 +403,12 @@ def run(args):
                           "q84_minus_q16": float(np.percentile(values, 84) - np.percentile(values, 16))}
                    for mode, values in t0_comparison.items() if values},
                "tof_counts": {name: len(values) for name, values in tofs.items()},
-               "t0_t1_prompt_gate_counts": gate_counts,
+               "t0_t2_prompt_gate_counts": gate_counts,
+               "t0_channel_residual_display_range_ns": [-args.t0_residual_range_ns,
+                                                        args.t0_residual_range_ns],
+               "t0_channel_residuals_outside_display_range": {
+                   str(ch): sum(abs(value) > args.t0_residual_range_ns for value in values)
+                   for ch, values in t0_residuals_for_plot.items()},
                "t5_end_multiplicity": multiplicities.tolist(),
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates."}
@@ -427,8 +433,10 @@ def parser():
     result.add_argument("--max-events", type=int, default=1_000_000)
     result.add_argument("--t0-channels", type=int, nargs=4, default=T0_CHANNELS,
                         help="Four T0 TDC channels used for the event average")
-    result.add_argument("--t1-channels", type=int, nargs="+", default=DEFAULT_T1_CHANNELS,
-                        help="T1 TDC channels to average (default 4 5; choose 4 5 6 7 if four are present)")
+    result.add_argument("--t2-channels", type=int, nargs="+", default=T2_CHANNELS,
+                        help="T2 TDC channel(s) to average (default: channel 8)")
+    result.add_argument("--t0-residual-range-ns", type=float, default=5.0,
+                        help="Half-range for the zoomed T0 channel-residual comparison plot")
     result.add_argument("--prompt-half-width-ns", type=float, default=40.0)
     result.add_argument("--peak-bin-ns", type=float, default=2.0)
     result.add_argument("--end-diff-range-ns", type=float, default=20.0)

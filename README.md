@@ -111,11 +111,11 @@ with DataLoader("/path/to/WCTE_merged_production_R1827.root") as data:
         pass
 ```
 
-T1 is not required for this T0–T2 tagged-gamma selection. In the prompt timing
-diagnostic, T1 uses configurable channels (default 4 and 5); check the per-run
-channel-presence counts before interpreting its TOF. The script writes no more
-than four panels per timing-plot page and stamps `data | Run N` when a run ID
-branch or run number in the ROOT filename is available.
+The prompt timing diagnostic plots T0 and T2 (default T2 channel 8) and their
+T2−T0 difference; it does not assume T1 is present. Override T2 channels with
+`--t2-channels` if the run mapping differs. The script writes no more than four
+panels per timing-plot page and stamps `data | Run N` when a run ID branch or
+run number in the ROOT filename is available.
 
 Each selected window gets a PNG with separate WCTE PMT, beamline TDC, and
 T5 panels. The panels deliberately have independent clock origins: an
@@ -230,10 +230,10 @@ physics from instrumental structure.
 `scripts/study_wcte_beamline_prompt.py` makes a prompt-only beam-monitor study
 without applying a WCTE PMT quality mask. It requires both beamline TDC
 reference channels and, when present, a clear `vme_digi_issues_bitmask`. The
-script subtracts the first channel-31/46 reference hit using the established
-beam-monitor convention. It finds the main peak once for the four-PMT T0
-average, four-PMT T1 average, each T5 end and paired-bar mean, and each HD
-channel, then uses fixed ±40 ns gates for every readout. T5 end gates are
+script subtracts the first channel-31/46 reference hit once using the
+established beam-monitor convention. It finds the main peak once for the
+four-channel T0 average, T2 channel 8, each T5 end and paired-bar mean, and
+each HD channel, then uses fixed ±40 ns gates for every readout. T5 end gates are
 per-end/per-bar so cable and bar offsets do not suppress a real two-ended hit.
 T5 multiplicity is reported as 0, 1, or 2 ends per bar; no T5 multiple-hit
 veto is applied. These corrected beamline times are not aligned to the WCTE
@@ -247,17 +247,24 @@ python3 scripts/study_wcte_beamline_prompt.py \
   --output-dir outputs/R1827_beamline_prompt --max-events 100000
 ```
 
-The peak diagnostics are split across `beamline_prompt_peaks_t0_t1.png`,
-`beamline_prompt_peaks_t5.png`, and `beamline_prompt_peaks_hd.png` so the
-channel distributions are readable. `beamline_prompt_tof_and_t5.png` contains
-separate TOF panels, T5 per-bar end multiplicity, and paired-end time
-differences; the multiplicity axis is logarithmic and the end-difference
-range defaults to ±20 ns. The T0–T1 panel overlays all readouts with both
-groups present and the subset passing both fixed prompt gates, making an empty
-gated sample diagnosable. T0–HD0 and T0–HD5 are cross-reference-bank time
+The peak diagnostics are split across `beamline_prompt_peaks_t0_t2.png`,
+`beamline_prompt_peaks_t5_bars_0-3.png`, `beamline_prompt_peaks_t5_bars_4-7.png`,
+and four HD pages (`beamline_prompt_peaks_hd_*.png`) so no page has more than
+four panels. `t0_channel_correction_comparison.png` compares the T0 average
+before/after a diagnostic run-derived relative equalization and zooms the
+per-channel residual panel to ±5 ns by default; out-of-view counts are in
+`summary.json`. The equalization is diagnostic and is not used for TOF gates.
+`beamline_prompt_tof_page_*.png` contains the T2−T0, T0−T5, and selected HD
+timing panels; the T2−T0 panel overlays all readouts with both groups present
+and the subset passing both fixed prompt gates. The T1 plot was removed because
+this run has no usable T1 sample. T0–HD0 and T0–HD5 are cross-reference-bank time
 differences (T0 uses reference 31; these HD channels use 46); T0–HD8 shares
-reference 31. All remain detector-time differences, not calibrated physical
-TOFs. The script also writes `prompt_tof_values.csv`,
+reference 31. The ROOT branch is preserved raw by the converter; this script
+subtracts its reference hit only once. Therefore the negative corrected T0/HD
+peak positions are relative clock origins, not evidence of a second subtraction.
+T2−T0 uses the same reference channel, so the reference term cancels. Cross-bank
+T0−HD differences still include the difference between reference clocks and
+are not calibrated physical TOFs. The script also writes `prompt_tof_values.csv`,
 `t5_prompt_multiplicity.csv`, and `summary.json` with gate centers and counts.
 
 For a full run, omit --max-events. The script writes files such as

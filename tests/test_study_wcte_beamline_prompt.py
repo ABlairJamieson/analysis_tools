@@ -44,19 +44,19 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     summary = run(argparse.Namespace(
         input_root=root_path, tree="WCTEReadoutWindows", output_dir=out,
         entry_start=0, max_events=10, prompt_half_width_ns=40,
-        peak_bin_ns=2, end_diff_range_ns=40,
+        peak_bin_ns=2, end_diff_range_ns=40, t0_residual_range_ns=5,
     ))
     assert summary["run_number"] == 1827
     assert summary["beamline_quality_readouts"] == 3
     assert summary["prompt_gate_centers"]["T0 average (4 channels)"]["center_ns"] == 1001.5
-    assert summary["t1_channels"] == [4, 5]
-    assert summary["tof_counts"]["T0-T1"] == 3
+    assert summary["t2_channels"] == [8]
+    assert summary["tof_counts"]["T2-T0"] == 3
     assert summary["tof_counts"]["T0-T5"] == 24
     assert summary["tof_counts"]["T0-HD0"] == 3
     assert summary["tof_counts"]["T0-HD5"] == 3
     assert summary["tof_counts"]["T0-HD8"] == 3
     assert all(row == [0, 0, 3] for row in summary["t5_end_multiplicity"])
-    assert (out / "beamline_prompt_peaks_t0_t1.png").stat().st_size > 0
+    assert (out / "beamline_prompt_peaks_t0_t2.png").stat().st_size > 0
     assert (out / "beamline_prompt_peaks_t5_bars_0-3.png").stat().st_size > 0
     assert (out / "beamline_prompt_peaks_t5_bars_4-7.png").stat().st_size > 0
     assert (out / "beamline_prompt_peaks_hd_0-3.png").stat().st_size > 0
