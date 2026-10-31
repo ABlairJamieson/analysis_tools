@@ -314,36 +314,59 @@ def run(args):
     fig.tight_layout()
     save_data(fig, args.output_dir / "t0_channel_residuals_before_after_equalization.png", run_number)
 
-    # Show explicitly what the channel-31 subtraction does to the T0 clock
-    # origin. The raw distributions share a clock, while the second panel
-    # checks the corrected result against the direct raw-minus-reference value.
-    diagnostic_rows = [r for r in rows if r["t0_raw"] is not None and r["t0"] is not None
-                       and r["reference31_raw"] is not None]
-    raw_t0 = np.asarray([r["t0_raw"] for r in diagnostic_rows], dtype=float)
-    ref31 = np.asarray([r["reference31_raw"] for r in diagnostic_rows], dtype=float)
-    corrected_t0 = np.asarray([r["t0"] for r in diagnostic_rows], dtype=float)
-    direct_corrected_t0 = raw_t0 - ref31
-    n_common = len(diagnostic_rows)
+    # Show every T0 channel against the raw channel-31 reference separately.
+    raw_t0_by_channel = {}
+    corrected_t0_by_channel = {}
+    direct_corrected_t0_by_channel = {}
+    subtraction_checks = {}
+    for channel in t0_channels:
+        diagnostic_rows = [r for r in rows if channel in r["raw_times"]
+                           and channel in r["times"] and r["reference31_raw"] is not None]
+        raw = np.asarray([r["raw_times"][channel] for r in diagnostic_rows], dtype=float)
+        ref = np.asarray([r["reference31_raw"] for r in diagnostic_rows], dtype=float)
+        corrected = np.asarray([r["times"][channel] for r in diagnostic_rows], dtype=float)
+        direct = raw - ref
+        raw_t0_by_channel[channel] = raw
+        corrected_t0_by_channel[channel] = corrected
+        direct_corrected_t0_by_channel[channel] = direct
+        subtraction_checks[str(channel)] = {
+            "readouts": len(diagnostic_rows),
+            "raw_channel_median_ns": float(np.median(raw)) if len(raw) else None,
+            "raw_channel31_median_ns": float(np.median(ref)) if len(ref) else None,
+            "corrected_channel_median_ns": float(np.median(corrected)) if len(corrected) else None,
+            "direct_raw_minus_channel31_median_ns": float(np.median(direct)) if len(direct) else None,
+            "max_abs_difference_current_vs_direct_ns": (
+                float(np.max(np.abs(corrected - direct))) if len(direct) else None),
+        }
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
-    if len(raw_t0) and len(ref31):
-        raw_edges = np.histogram_bin_edges(np.concatenate([raw_t0, ref31]), bins=120)
-        axes[0].hist(raw_t0, bins=raw_edges, histtype="step", linewidth=1.4,
-                     label=f"raw T0 four-channel average (n={len(raw_t0):,})")
-        axes[0].hist(ref31, bins=raw_edges, histtype="step", linewidth=1.4,
-                     label=f"raw channel-31 reference (n={len(ref31):,})")
+    raw_reference = np.asarray([r["reference31_raw"] for r in rows
+                                if r["reference31_raw"] is not None], dtype=float)
+    raw_all = [values for values in raw_t0_by_channel.values() if len(values)]
+    if len(raw_reference) and raw_all:
+        raw_edges = np.histogram_bin_edges(np.concatenate([raw_reference, *raw_all]), bins=120)
+        for channel, values in raw_t0_by_channel.items():
+            if len(values):
+                axes[0].hist(values, bins=raw_edges, histtype="step", linewidth=1.2,
+                             label=f"raw T0 channel {channel} (n={len(values):,})")
+        axes[0].hist(raw_reference, bins=raw_edges, histtype="step", linewidth=1.5,
+                     color="black", label=f"raw channel-31 reference (n={len(raw_reference):,})")
         axes[0].legend(fontsize=8)
     axes[0].set(xlabel="Unsubtracted TDC time (ns; common beamline clock)",
-                ylabel="Readouts / bin", title="Raw T0 and reference times")
-    if n_common:
-        corrected_edges = np.histogram_bin_edges(
-            np.concatenate([corrected_t0, direct_corrected_t0]), bins=100)
-        axes[1].hist(corrected_t0, bins=corrected_edges, histtype="step", linewidth=1.4,
-                     label="current corrected T0")
-        axes[1].hist(direct_corrected_t0, bins=corrected_edges, histtype="step",
-                     linestyle="--", linewidth=1.4, label="raw T0 − raw channel 31")
+                ylabel="Readouts / bin", title="Each raw T0 channel and raw reference")
+    corrected_all = [values for values in corrected_t0_by_channel.values() if len(values)]
+    if corrected_all:
+        corrected_edges = np.histogram_bin_edges(np.concatenate(
+            [*corrected_all, *direct_corrected_t0_by_channel.values()]), bins=100)
+        for channel, corrected in corrected_t0_by_channel.items():
+            if len(corrected):
+                direct = direct_corrected_t0_by_channel[channel]
+                axes[1].hist(corrected, bins=corrected_edges, histtype="step", linewidth=1.3,
+                             label=f"channel {channel}: corrected")
+                axes[1].hist(direct, bins=corrected_edges, histtype="step", linestyle="--",
+                             linewidth=1.2, label=f"channel {channel}: raw − ref")
         axes[1].legend(fontsize=8)
     axes[1].set(xlabel="T0 time after channel-31 subtraction (ns)",
-                ylabel="Readouts / bin", title="Single-subtraction cross-check")
+                ylabel="Readouts / bin", title="Per-channel single-subtraction check")
     fig.suptitle("T0 reference-subtraction diagnostic")
     fig.tight_layout()
     save_data(fig, args.output_dir / "t0_raw_vs_reference_subtraction.png", run_number)
@@ -485,18 +508,10 @@ def run(args):
                "t5_end_multiplicity": multiplicities.tolist(),
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates. The absolute four-channel average retains event-to-event common-mode timing spread; the per-channel residual plot subtracts the same-event median and therefore does not show that common-mode spread."}
-    discrepancy = (float(np.max(np.abs(corrected_t0 - direct_corrected_t0)))
-                   if n_common else None)
     summary["reference_subtraction_diagnostic"] = {
         "plot": "t0_raw_vs_reference_subtraction.png",
-        "readouts": int(n_common),
-        "raw_t0_median_ns": float(np.median(raw_t0)) if len(raw_t0) else None,
-        "raw_channel31_median_ns": float(np.median(ref31)) if len(ref31) else None,
-        "corrected_t0_median_ns": float(np.median(corrected_t0)) if n_common else None,
-        "direct_raw_t0_minus_channel31_median_ns": (
-            float(np.median(direct_corrected_t0)) if n_common else None),
-        "max_abs_difference_current_vs_direct_ns": discrepancy,
-        "note": "The comparison checks the script's single channel-31 subtraction against raw T0 minus raw channel 31; it does not infer whether upstream production applied an undocumented correction. The converter preserves these branch values unchanged."
+        "per_channel": subtraction_checks,
+        "note": "Each channel is checked against its own raw time minus raw channel 31. This tests the script's subtraction arithmetic but cannot infer whether an undocumented correction was applied upstream of the preserved ROOT branch."
     }
     summary["clock_interpretation_note"] = (
         "TOF histograms are corrected detector-time differences, not yet calibrated physical TOFs. "

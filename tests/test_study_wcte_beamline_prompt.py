@@ -70,8 +70,9 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     written_summary = json.loads((out / "summary.json").read_text())
     assert written_summary["prompt_gate_half_width_ns"] == 40
     diagnostic = written_summary["reference_subtraction_diagnostic"]
-    assert diagnostic["readouts"] == 3
-    assert diagnostic["raw_t0_median_ns"] == 2001.5
-    assert diagnostic["raw_channel31_median_ns"] == 1000
-    assert diagnostic["corrected_t0_median_ns"] == 1001.5
-    assert diagnostic["max_abs_difference_current_vs_direct_ns"] == 0
+    assert set(diagnostic["per_channel"]) == {"0", "1", "2", "3"}
+    assert diagnostic["per_channel"]["0"]["readouts"] == 3
+    assert diagnostic["per_channel"]["0"]["raw_channel_median_ns"] == 2000
+    assert diagnostic["per_channel"]["0"]["raw_channel31_median_ns"] == 1000
+    assert diagnostic["per_channel"]["0"]["corrected_channel_median_ns"] == 1000
+    assert diagnostic["per_channel"]["0"]["max_abs_difference_current_vs_direct_ns"] == 0
