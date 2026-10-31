@@ -65,4 +65,13 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "beamline_prompt_peaks_hd_12-14.png").stat().st_size > 0
     assert (out / "beamline_prompt_tof_page_1.png").stat().st_size > 0
     assert (out / "t0_channel_correction_comparison.png").stat().st_size > 0
-    assert json.loads((out / "summary.json").read_text())["prompt_gate_half_width_ns"] == 40
+    assert (out / "t0_channel_residuals_before_after_equalization.png").stat().st_size > 0
+    assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
+    written_summary = json.loads((out / "summary.json").read_text())
+    assert written_summary["prompt_gate_half_width_ns"] == 40
+    diagnostic = written_summary["reference_subtraction_diagnostic"]
+    assert diagnostic["readouts"] == 3
+    assert diagnostic["raw_t0_median_ns"] == 2001.5
+    assert diagnostic["raw_channel31_median_ns"] == 1000
+    assert diagnostic["corrected_t0_median_ns"] == 1001.5
+    assert diagnostic["max_abs_difference_current_vs_direct_ns"] == 0

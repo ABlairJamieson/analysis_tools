@@ -254,6 +254,19 @@ four panels. `t0_channel_correction_comparison.png` compares the T0 average
 before/after a diagnostic run-derived relative equalization and zooms the
 per-channel residual panel to ±5 ns by default; out-of-view counts are in
 `summary.json`. The equalization is diagnostic and is not used for TOF gates.
+The four-channel average in the left panel still contains common event-to-event
+timing jitter, so it is not expected to shrink to the width of the per-channel
+residuals on the right. `t0_channel_residuals_before_after_equalization.png`
+compares those residuals before and after the relative offsets, after removing
+each event's median time in both cases; this isolates channel-to-channel
+alignment from common timing spread.
+`t0_raw_vs_reference_subtraction.png` compares the unsubtracted T0 average and
+channel-31 reference on their shared beamline clock, then overlays the current
+reference-corrected T0 result with raw T0 minus raw channel 31. The matching
+curves verify the script's subtraction arithmetic; the plot alone cannot rule
+out an undocumented correction upstream of the preserved ROOT branch. The
+same counts and a numerical difference check are recorded in
+`summary.json` under `reference_subtraction_diagnostic`.
 `beamline_prompt_tof_page_*.png` contains the T2−T0, T0−T5, and selected HD
 timing panels; the T2−T0 panel overlays all readouts with both groups present
 and the subset passing both fixed prompt gates. The T1 plot was removed because
