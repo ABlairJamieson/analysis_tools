@@ -272,10 +272,17 @@ shows a log-count 2D histogram of each raw T0 channel against the raw channel-31
 reference, useful for checking event-by-event clock correlation. Its axes show
 the central 99% of entries, and each panel reports shown/total counts so
 outliers are not hidden without notice.
+`t0_beam_spot_timing_proxy.png` plots the requested left/right and
+top/bottom T0 timing asymmetries for events with all four channels. It uses
+reference-subtracted times but no channel-by-channel equalization; the common
+reference cancels in both differences. Treat its center and spread as timing
+proxies, not calibrated beam position, until channel delays and bar timing
+response are calibrated.
 `beamline_prompt_tof_page_*.png` contains the T2−T0, T0−T5, and selected HD
 timing panels; the T2−T0 panel overlays all readouts with both groups present
-and the subset passing both fixed prompt gates. The T1 plot was removed because
-this run has no usable T1 sample. T0–HD0 and T0–HD5 are cross-reference-bank time
+and the subset passing both fixed prompt gates, zoomed to the central 99% of
+all T2−T0 pairs with out-of-view counts shown in the title and summary. No T1 plot is made; the second
+prompt detector shown is T2 (channel 8). T0–HD0 and T0–HD5 are cross-reference-bank time
 differences (T0 uses reference 31; these HD channels use 46); T0–HD8 shares
 reference 31. The ROOT branch is preserved raw by the converter; this script
 subtracts its reference hit only once. Therefore the negative corrected T0/HD

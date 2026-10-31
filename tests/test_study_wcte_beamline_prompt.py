@@ -68,6 +68,7 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "t0_channel_residuals_before_after_equalization.png").stat().st_size > 0
     assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
     assert (out / "t0_channels_vs_reference_2d.png").stat().st_size > 0
+    assert (out / "t0_beam_spot_timing_proxy.png").stat().st_size > 0
     written_summary = json.loads((out / "summary.json").read_text())
     assert written_summary["prompt_gate_half_width_ns"] == 40
     diagnostic = written_summary["reference_subtraction_diagnostic"]
@@ -77,3 +78,10 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert diagnostic["per_channel"]["0"]["raw_channel31_median_ns"] == 1000
     assert diagnostic["per_channel"]["0"]["corrected_channel_median_ns"] == 1000
     assert diagnostic["per_channel"]["0"]["max_abs_difference_current_vs_direct_ns"] == 0
+    zoom = written_summary["t2_t0_histogram_zoom"]
+    assert zoom["all_pairs_total"] == 3
+    assert zoom["all_pairs_in_view"] == 3
+    beam_spot = written_summary["t0_beam_spot_timing_proxy"]
+    assert beam_spot["events_with_all_four_t0_channels"] == 3
+    assert beam_spot["vertical_top_minus_bottom_median_ns"] == -2
+    assert beam_spot["horizontal_left_minus_right_median_ns"] == -1

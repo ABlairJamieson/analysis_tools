@@ -419,6 +419,52 @@ def run(args):
     fig.suptitle("Raw T0 channel time versus raw channel-31 reference (central 99% view)")
     save_data(fig, args.output_dir / "t0_channels_vs_reference_2d.png", run_number)
 
+    # T0 channel geometry: 0/1 are the upper pair and 2/3 the lower pair;
+    # 0/2 are left and 1/3 right. The common channel-31 subtraction cancels
+    # algebraically in both contrasts. Keep channel offsets unadjusted so the
+    # observed centroid is retained, but label the axes as uncalibrated.
+    beam_spot_events = [r for r in rows if all(ch in r["times"] for ch in t0_channels)]
+    vertical_asymmetry = np.asarray([
+        (r["times"][t0_channels[0]] + r["times"][t0_channels[1]]
+         - r["times"][t0_channels[2]] - r["times"][t0_channels[3]]) / 2
+        for r in beam_spot_events], dtype=float)
+    horizontal_asymmetry = np.asarray([
+        (r["times"][t0_channels[0]] + r["times"][t0_channels[2]]
+         - r["times"][t0_channels[1]] - r["times"][t0_channels[3]]) / 2
+        for r in beam_spot_events], dtype=float)
+    beam_spot_plot_summary = {"events_with_all_four_t0_channels": len(beam_spot_events),
+                              "channel_times": "reference-subtracted once; no per-channel offset equalization",
+                              "vertical_top_minus_bottom_median_ns": (
+                                  float(np.median(vertical_asymmetry)) if len(vertical_asymmetry) else None),
+                              "horizontal_left_minus_right_median_ns": (
+                                  float(np.median(horizontal_asymmetry)) if len(horizontal_asymmetry) else None)}
+    if len(vertical_asymmetry):
+        x_low, x_high = np.percentile(horizontal_asymmetry, [0.5, 99.5])
+        y_low, y_high = np.percentile(vertical_asymmetry, [0.5, 99.5])
+        x_pad = max((x_high - x_low) * 0.08, 0.5)
+        y_pad = max((y_high - y_low) * 0.08, 0.5)
+        beam_spot_range = ((float(x_low - x_pad), float(x_high + x_pad)),
+                           (float(y_low - y_pad), float(y_high + y_pad)))
+        in_view = ((horizontal_asymmetry >= beam_spot_range[0][0])
+                   & (horizontal_asymmetry <= beam_spot_range[0][1])
+                   & (vertical_asymmetry >= beam_spot_range[1][0])
+                   & (vertical_asymmetry <= beam_spot_range[1][1]))
+        fig, axis = plt.subplots(figsize=(8.5, 7), constrained_layout=True)
+        mesh = axis.hist2d(horizontal_asymmetry, vertical_asymmetry, bins=100,
+                           range=beam_spot_range, norm=matplotlib.colors.LogNorm(),
+                           cmap="viridis")[3]
+        fig.colorbar(mesh, ax=axis, label="Readouts / bin")
+        axis.set(xlabel="[(T00 + T02) − (T01 + T03)] / 2 (ns; left − right)",
+                 ylabel="[(T00 + T01) − (T02 + T03)] / 2 (ns; top − bottom)",
+                 title=f"T0 timing-asymmetry proxy; central 99% view, shown {np.count_nonzero(in_view):,}/{len(in_view):,}")
+        fig.suptitle("T0 beam-spot timing proxy (not position-calibrated; no channel equalization)")
+        save_data(fig, args.output_dir / "t0_beam_spot_timing_proxy.png", run_number)
+        beam_spot_plot_summary["plot"] = "t0_beam_spot_timing_proxy.png"
+        beam_spot_plot_summary["events_shown_in_central_view"] = int(np.count_nonzero(in_view))
+        beam_spot_plot_summary["display_range_ns"] = [list(beam_spot_range[0]), list(beam_spot_range[1])]
+    else:
+        beam_spot_plot_summary["plot"] = None
+
     def in_gate(label, value):
         center = gates[label]["center_ns"]
         return value is not None and np.isfinite(center) and abs(value - center) <= args.prompt_half_width_ns
@@ -484,24 +530,45 @@ def run(args):
 
     # TOF panels are split into pages of no more than four plots.
     tof_items = list(tofs.items())
+    t2_t0_zoom_summary = None
     for page_start in range(0, len(tof_items), 4):
         page_items = tof_items[page_start:page_start + 4]
         rows_n = 2
         cols_n = 2
         fig, axes = plt.subplots(rows_n, cols_n, figsize=(12, 8))
         for axis, (label, vals) in zip(axes.flat, page_items):
-            if vals:
+            if vals and label != "T2-T0":
                 axis.hist(vals, bins=120, histtype="step", color="tab:blue")
             if label == "T2-T0" and ungated_t2_t0:
-                common_edges = np.histogram_bin_edges(ungated_t2_t0, bins=120)
-                axis.hist(ungated_t2_t0, bins=common_edges, histtype="step", color="tab:orange",
+                all_values = np.asarray(ungated_t2_t0, dtype=float)
+                zoom_low, zoom_high = np.percentile(all_values, [0.5, 99.5])
+                padding = max((zoom_high - zoom_low) * 0.08, 0.5)
+                zoom_limits = (float(zoom_low - padding), float(zoom_high + padding))
+                common_edges = np.linspace(zoom_limits[0], zoom_limits[1], 121)
+                all_in_view = int(np.count_nonzero((all_values >= zoom_limits[0])
+                                                   & (all_values <= zoom_limits[1])))
+                gated_values = np.asarray(vals, dtype=float)
+                gated_in_view = int(np.count_nonzero((gated_values >= zoom_limits[0])
+                                                     & (gated_values <= zoom_limits[1])))
+                axis.hist(all_values, bins=common_edges, histtype="step", color="tab:orange",
                           label=f"all T2−T0 pairs (n={len(ungated_t2_t0):,})")
                 if vals:
-                    axis.hist(vals, bins=common_edges, histtype="step", color="tab:blue",
+                    axis.hist(gated_values, bins=common_edges, histtype="step", color="tab:blue",
                               label=f"both prompt gates (n={len(vals):,})")
+                axis.set_xlim(*zoom_limits)
+                t2_t0_zoom_summary = {
+                    "display_range_ns": list(zoom_limits),
+                    "all_pairs_total": len(all_values), "all_pairs_in_view": all_in_view,
+                    "gated_pairs_total": len(gated_values), "gated_pairs_in_view": gated_in_view,
+                    "quantile_range_percent": [0.5, 99.5],
+                }
                 axis.legend(fontsize=8)
             axis.set(xlabel="Reference-corrected detector-time difference (ns)", ylabel="Readouts / bin",
-                     title=f"{label} (prompt-gated n={len(vals):,})")
+                     title=(f"{label} (central 99% view; out of view: "
+                            f"all {len(ungated_t2_t0) - all_in_view:,}, "
+                            f"gated {len(vals) - gated_in_view:,})"
+                            if label == "T2-T0" and ungated_t2_t0
+                            else f"{label} (prompt-gated n={len(vals):,})"))
             if label in ("T0-HD0", "T0-HD5", "T0-HD8"):
                 hd_id = int(label.split("HD", 1)[1])
                 channel = next(ch for ch, element in HD_CHANNELS.items() if element == hd_id)
@@ -544,7 +611,9 @@ def run(args):
                           "q84_minus_q16": float(np.percentile(values, 84) - np.percentile(values, 16))}
                    for mode, values in t0_comparison.items() if values},
                "tof_counts": {name: len(values) for name, values in tofs.items()},
+               "t2_t0_histogram_zoom": t2_t0_zoom_summary,
                "t0_t2_prompt_gate_counts": gate_counts,
+               "t0_beam_spot_timing_proxy": beam_spot_plot_summary,
                "t0_channel_residual_display_range_ns": [-args.t0_residual_range_ns,
                                                         args.t0_residual_range_ns],
                "t0_channel_residuals_outside_display_range": {
