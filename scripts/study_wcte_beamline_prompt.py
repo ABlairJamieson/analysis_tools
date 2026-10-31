@@ -463,46 +463,8 @@ def run(args):
         beam_spot_plot_summary["events_shown_in_central_view"] = int(np.count_nonzero(in_view))
         beam_spot_plot_summary["display_range_ns"] = [list(beam_spot_range[0]), list(beam_spot_range[1])]
 
-        # Position-like view: center each asymmetry at its run median to remove
-        # arbitrary channel-delay zero, then apply the requested 3 ns/m scale.
-        # This is a relative spot-shape diagnostic, not absolute calibration.
-        ns_per_m = 3.0
-        detector_size_mm = 60.0
-        position_x_mm = (horizontal_asymmetry - np.median(horizontal_asymmetry)) * 1000.0 / ns_per_m
-        position_y_mm = (vertical_asymmetry - np.median(vertical_asymmetry)) * 1000.0 / ns_per_m
-        detector_half_mm = detector_size_mm / 2
-        inside_detector = ((np.abs(position_x_mm) <= detector_half_mm)
-                           & (np.abs(position_y_mm) <= detector_half_mm))
-        zoom_range_mm = ((-detector_half_mm, detector_half_mm),
-                         (-detector_half_mm, detector_half_mm))
-        zoom_counts, zoom_x_edges, zoom_y_edges = np.histogram2d(
-            position_x_mm, position_y_mm, bins=60, range=zoom_range_mm)
-        vmax = max(float(zoom_counts.max()), 2.0)
-        norm = matplotlib.colors.LogNorm(vmin=1.0, vmax=vmax)
-        fig, axis = plt.subplots(figsize=(8, 7), constrained_layout=True)
-        mesh = axis.pcolormesh(zoom_x_edges, zoom_y_edges, zoom_counts.T,
-                               norm=norm, cmap="viridis", shading="auto")
-        axis.set(xlim=(-detector_half_mm, detector_half_mm),
-                 ylim=(-detector_half_mm, detector_half_mm),
-                 xlabel="Relative horizontal position proxy (mm)",
-                 ylabel="Relative vertical position proxy (mm)",
-                 title=f"60 × 60 mm T0 view centered at (0, 0); "
-                       f"inside {np.count_nonzero(inside_detector):,}/{len(inside_detector):,}")
-        axis.set_aspect("equal", adjustable="box")
-        fig.colorbar(mesh, ax=axis, label="Readouts / bin", shrink=0.9)
-        fig.suptitle("T0 beam-spot timing converted at 3 ns/m; median-centered")
-        save_data(fig, args.output_dir / "t0_beam_spot_timing_proxy_mm.png", run_number)
-        beam_spot_plot_summary.update({
-            "position_proxy_plot": "t0_beam_spot_timing_proxy_mm.png",
-            "conversion_ns_per_m": ns_per_m,
-            "scintillator_size_mm": [detector_size_mm, detector_size_mm],
-            "median_centered": True,
-            "events_inside_60x60mm": int(np.count_nonzero(inside_detector)),
-            "events_total": len(inside_detector),
-        })
     else:
         beam_spot_plot_summary["plot"] = None
-        beam_spot_plot_summary["position_proxy_plot"] = None
 
     def in_gate(label, value):
         center = gates[label]["center_ns"]
@@ -570,13 +532,14 @@ def run(args):
     # TOF panels are split into pages of no more than four plots.
     tof_items = list(tofs.items())
     t2_t0_zoom_summary = None
+    t0_hd_zoom_summaries = {}
     for page_start in range(0, len(tof_items), 4):
         page_items = tof_items[page_start:page_start + 4]
         rows_n = 2
         cols_n = 2
         fig, axes = plt.subplots(rows_n, cols_n, figsize=(12, 8))
         for axis, (label, vals) in zip(axes.flat, page_items):
-            if vals and label != "T2-T0":
+            if vals and label not in ("T2-T0", "T0-HD0", "T0-HD8"):
                 axis.hist(vals, bins=120, histtype="step", color="tab:blue")
             if label == "T2-T0" and ungated_t2_t0:
                 all_values = np.asarray(ungated_t2_t0, dtype=float)
@@ -602,6 +565,20 @@ def run(args):
                     "quantile_range_percent": [0.5, 99.5],
                 }
                 axis.legend(fontsize=8)
+            if label in ("T0-HD0", "T0-HD8") and vals:
+                hd_values = np.asarray(vals, dtype=float)
+                zoom_low, zoom_high = np.percentile(hd_values, [0.5, 99.5])
+                padding = max((zoom_high - zoom_low) * 0.08, 0.5)
+                hd_limits = (float(zoom_low - padding), float(zoom_high + padding))
+                hd_edges = np.linspace(hd_limits[0], hd_limits[1], 121)
+                hd_in_view = int(np.count_nonzero((hd_values >= hd_limits[0])
+                                                  & (hd_values <= hd_limits[1])))
+                axis.hist(hd_values, bins=hd_edges, histtype="step", color="tab:blue")
+                axis.set_xlim(*hd_limits)
+                t0_hd_zoom_summaries[label] = {
+                    "display_range_ns": list(hd_limits), "total": len(hd_values),
+                    "in_view": hd_in_view, "quantile_range_percent": [0.5, 99.5],
+                }
             axis.set(xlabel="Reference-corrected detector-time difference (ns)", ylabel="Readouts / bin",
                      title=(f"{label} (central 99% view; out of view: "
                             f"all {len(ungated_t2_t0) - all_in_view:,}, "
@@ -613,7 +590,13 @@ def run(args):
                 channel = next(ch for ch, element in HD_CHANNELS.items() if element == hd_id)
                 bank = ("different ref banks (T0=31, HD=46); uncalibrated"
                         if channel > 31 else "same ref 31; detector offsets remain")
-                axis.set_title(f"{label}: {bank}\nprompt-gated n={len(vals):,}", fontsize=9)
+                if label in t0_hd_zoom_summaries:
+                    hd_zoom = t0_hd_zoom_summaries[label]
+                    outside = hd_zoom["total"] - hd_zoom["in_view"]
+                    detail = f"central 99% view; out of view {outside:,}/{len(vals):,}"
+                else:
+                    detail = f"prompt-gated n={len(vals):,}"
+                axis.set_title(f"{label}: {bank}\n{detail}", fontsize=9)
         for axis in axes.flat[len(page_items):]:
             axis.set_visible(False)
         fig.suptitle("Beamline prompt-gated timing (no WCTE PMT quality selection)")
@@ -651,6 +634,7 @@ def run(args):
                    for mode, values in t0_comparison.items() if values},
                "tof_counts": {name: len(values) for name, values in tofs.items()},
                "t2_t0_histogram_zoom": t2_t0_zoom_summary,
+               "t0_hd_histogram_zooms": t0_hd_zoom_summaries,
                "t0_t2_prompt_gate_counts": gate_counts,
                "t0_beam_spot_timing_proxy": beam_spot_plot_summary,
                "t0_channel_residual_display_range_ns": [-args.t0_residual_range_ns,
@@ -697,7 +681,8 @@ def parser():
                         help="Half-range for the zoomed T0 channel-residual comparison plot")
     result.add_argument("--prompt-half-width-ns", type=float, default=40.0)
     result.add_argument("--peak-bin-ns", type=float, default=2.0)
-    result.add_argument("--end-diff-range-ns", type=float, default=20.0)
+    result.add_argument("--end-diff-range-ns", type=float, default=5.0,
+                        help="Half-range for the T5 left-right end-time-difference plot")
     return result
 
 

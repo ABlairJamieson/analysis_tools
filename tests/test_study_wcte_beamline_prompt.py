@@ -69,7 +69,6 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
     assert (out / "t0_channels_vs_reference_2d.png").stat().st_size > 0
     assert (out / "t0_beam_spot_timing_proxy.png").stat().st_size > 0
-    assert (out / "t0_beam_spot_timing_proxy_mm.png").stat().st_size > 0
     written_summary = json.loads((out / "summary.json").read_text())
     assert written_summary["prompt_gate_half_width_ns"] == 40
     diagnostic = written_summary["reference_subtraction_diagnostic"]
@@ -82,10 +81,13 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     zoom = written_summary["t2_t0_histogram_zoom"]
     assert zoom["all_pairs_total"] == 3
     assert zoom["all_pairs_in_view"] == 3
+    hd0_zoom = written_summary["t0_hd_histogram_zooms"]["T0-HD0"]
+    assert hd0_zoom["total"] == 3
+    assert hd0_zoom["in_view"] == 3
+    hd8_zoom = written_summary["t0_hd_histogram_zooms"]["T0-HD8"]
+    assert hd8_zoom["total"] == 3
+    assert hd8_zoom["in_view"] == 3
     beam_spot = written_summary["t0_beam_spot_timing_proxy"]
     assert beam_spot["events_with_all_four_t0_channels"] == 3
     assert beam_spot["vertical_top_minus_bottom_median_ns"] == -2
     assert beam_spot["horizontal_left_minus_right_median_ns"] == -1
-    assert beam_spot["conversion_ns_per_m"] == 3
-    assert beam_spot["scintillator_size_mm"] == [60, 60]
-    assert beam_spot["events_inside_60x60mm"] == 3

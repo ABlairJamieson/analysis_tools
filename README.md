@@ -277,14 +277,13 @@ top/bottom T0 timing asymmetries for events with all four channels. It uses
 reference-subtracted times but no channel-by-channel equalization; the common
 reference cancels in both differences. Treat its center and spread as timing
 proxies, not calibrated beam position, until channel delays and bar timing
-response are calibrated. `t0_beam_spot_timing_proxy_mm.png` converts
-median-centered asymmetries using 3 ns/m and displays a single detector-sized
-view centered at (0, 0), with both axes fixed to ±30 mm. The inside-detector
-event count is included in `summary.json`.
+response are calibrated.
 `beamline_prompt_tof_page_*.png` contains the T2−T0, T0−T5, and selected HD
 timing panels; the T2−T0 panel overlays all readouts with both groups present
 and the subset passing both fixed prompt gates, zoomed to the central 99% of
-all T2−T0 pairs with out-of-view counts shown in the title and summary. No T1 plot is made; the second
+all T2−T0 pairs with out-of-view counts shown in the title and summary. The
+T0−HD0 and T0−HD8 panels are also zoomed to their central 99%, with excluded-tail
+counts reported. No T1 plot is made; the second
 prompt detector shown is T2 (channel 8). T0–HD0 and T0–HD5 are cross-reference-bank time
 differences (T0 uses reference 31; these HD channels use 46); T0–HD8 shares
 reference 31. The ROOT branch is preserved raw by the converter; this script
