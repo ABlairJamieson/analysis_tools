@@ -269,7 +269,9 @@ channel counts and numerical difference checks are recorded in `summary.json`
 under `reference_subtraction_diagnostic`. The subtraction-check panel is zoomed
 to the central 99.6% of corrected values. `t0_channels_vs_reference_2d.png`
 shows a log-count 2D histogram of each raw T0 channel against the raw channel-31
-reference, useful for checking event-by-event clock correlation.
+reference, useful for checking event-by-event clock correlation. Its axes show
+the central 99% of entries, and each panel reports shown/total counts so
+outliers are not hidden without notice.
 `beamline_prompt_tof_page_*.png` contains the T2−T0, T0−T5, and selected HD
 timing panels; the T2−T0 panel overlays all readouts with both groups present
 and the subset passing both fixed prompt gates. The T1 plot was removed because

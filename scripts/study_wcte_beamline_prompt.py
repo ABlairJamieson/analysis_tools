@@ -355,8 +355,13 @@ def run(args):
                 ylabel="Readouts / bin", title="Each raw T0 channel and raw reference")
     corrected_all = [values for values in corrected_t0_by_channel.values() if len(values)]
     if corrected_all:
-        corrected_edges = np.histogram_bin_edges(np.concatenate(
-            [*corrected_all, *direct_corrected_t0_by_channel.values()]), bins=100)
+        zoom_values = np.concatenate([*corrected_all, *direct_corrected_t0_by_channel.values()])
+        zoom_lo, zoom_hi = np.percentile(zoom_values, [0.2, 99.8])
+        padding = max((zoom_hi - zoom_lo) * 0.08, 1.0)
+        zoom_limits = (zoom_lo - padding, zoom_hi + padding)
+        # Build the bins from the visible window; using the full outlier range
+        # here leaves only a few very wide bins after the x-axis is zoomed.
+        corrected_edges = np.linspace(zoom_limits[0], zoom_limits[1], 121)
         for channel, corrected in corrected_t0_by_channel.items():
             if len(corrected):
                 direct = direct_corrected_t0_by_channel[channel]
@@ -368,31 +373,50 @@ def run(args):
     axes[1].set(xlabel="T0 time after channel-31 subtraction (ns)",
                 ylabel="Readouts / bin", title="Per-channel single-subtraction check")
     if corrected_all:
-        zoom_values = np.concatenate([*corrected_all, *direct_corrected_t0_by_channel.values()])
-        zoom_lo, zoom_hi = np.percentile(zoom_values, [0.2, 99.8])
-        padding = max((zoom_hi - zoom_lo) * 0.08, 1.0)
-        axes[1].set_xlim(zoom_lo - padding, zoom_hi + padding)
+        axes[1].set_xlim(*zoom_limits)
     fig.suptitle("T0 reference-subtraction diagnostic")
     fig.tight_layout()
     save_data(fig, args.output_dir / "t0_raw_vs_reference_subtraction.png", run_number)
 
-    fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=True, sharey=True)
-    mesh = None
-    for channel, axis in zip(t0_channels, axes.flat):
+    raw_t0_reference_pairs = {}
+    for channel in t0_channels:
         channel_rows = [r for r in rows if channel in r["raw_times"]
                         and r["reference31_raw"] is not None]
-        reference_values = np.asarray([r["reference31_raw"] for r in channel_rows], dtype=float)
-        channel_values = np.asarray([r["raw_times"][channel] for r in channel_rows], dtype=float)
+        raw_t0_reference_pairs[channel] = (
+            np.asarray([r["reference31_raw"] for r in channel_rows], dtype=float),
+            np.asarray([r["raw_times"][channel] for r in channel_rows], dtype=float))
+    nonempty_pairs = [(x, y) for x, y in raw_t0_reference_pairs.values() if len(x)]
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9), sharex=True, sharey=True,
+                             constrained_layout=True)
+    mesh = None
+    if nonempty_pairs:
+        all_reference = np.concatenate([x for x, _ in nonempty_pairs])
+        all_channel_times = np.concatenate([y for _, y in nonempty_pairs])
+        xlim = tuple(np.percentile(all_reference, [0.5, 99.5]))
+        ylim = tuple(np.percentile(all_channel_times, [0.5, 99.5]))
+        xpad = max((xlim[1] - xlim[0]) * 0.05, 0.5)
+        ypad = max((ylim[1] - ylim[0]) * 0.05, 0.5)
+        display_range = ((xlim[0] - xpad, xlim[1] + xpad),
+                         (ylim[0] - ypad, ylim[1] + ypad))
+    else:
+        display_range = None
+    for channel, axis in zip(t0_channels, axes.flat):
+        reference_values, channel_values = raw_t0_reference_pairs[channel]
         if len(channel_values):
-            mesh = axis.hist2d(reference_values, channel_values, bins=80,
+            x_range, y_range = display_range
+            in_view = ((reference_values >= x_range[0]) & (reference_values <= x_range[1])
+                       & (channel_values >= y_range[0]) & (channel_values <= y_range[1]))
+            mesh = axis.hist2d(reference_values, channel_values, bins=80, range=display_range,
                                norm=matplotlib.colors.LogNorm(), cmap="viridis")[-1]
-        axis.set(title=f"T0 channel {channel} (n={len(channel_values):,})",
+            shown = int(np.count_nonzero(in_view))
+        else:
+            shown = 0
+        axis.set(title=f"T0 channel {channel} (shown {shown:,}/{len(channel_values):,})",
                  xlabel="Raw channel-31 reference time (ns)",
                  ylabel="Raw T0 channel time (ns)")
     if mesh is not None:
-        fig.colorbar(mesh, ax=axes.ravel().tolist(), label="Readouts / bin")
-    fig.suptitle("Raw T0 channel time versus raw channel-31 reference")
-    fig.tight_layout()
+        fig.colorbar(mesh, ax=axes.ravel().tolist(), label="Readouts / bin", shrink=0.9, pad=0.02)
+    fig.suptitle("Raw T0 channel time versus raw channel-31 reference (central 99% view)")
     save_data(fig, args.output_dir / "t0_channels_vs_reference_2d.png", run_number)
 
     def in_gate(label, value):
