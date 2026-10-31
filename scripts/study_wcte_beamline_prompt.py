@@ -529,6 +529,48 @@ def run(args):
     axes[1].legend(ncol=2, fontsize=8)
     save_data(fig, args.output_dir / "beamline_prompt_t5_diagnostics.png", run_number)
 
+    # A first-look T5 beam-profile proxy: bar number gives the vertical
+    # detector row (bar 0 at the bottom through bar 7 at the top), while the
+    # paired-end time difference carries information along each horizontal
+    # bar. Do not label this as a position in mm until
+    # the bar layout, end orientation, channel offsets, and propagation speed
+    # have been calibrated.
+    t5_bar_ids = np.concatenate([
+        np.full(len(values), bar, dtype=float)
+        for bar, values in enumerate(end_differences) if values
+    ]) if any(end_differences) else np.asarray([], dtype=float)
+    t5_end_dt = np.concatenate([
+        np.asarray(values, dtype=float)
+        for values in end_differences if values
+    ]) if any(end_differences) else np.asarray([], dtype=float)
+    t5_beamspot_summary = {
+        "plot": None,
+        "paired_prompt_gated_entries": int(len(t5_end_dt)),
+        "coordinates": "lower-channel minus higher-channel time (ns) horizontally; T5 bar row vertically (0 bottom to 7 top; channel pairs 48/56 through 55/63)",
+        "note": "Exploratory profile only; not spatially calibrated. Bar positions/orientation, per-channel timing offsets, and effective light propagation speed are not applied.",
+    }
+    if len(t5_end_dt):
+        fig, axis = plt.subplots(figsize=(9, 6), constrained_layout=True)
+        mesh = axis.hist2d(
+            t5_end_dt, t5_bar_ids,
+            bins=[100, np.arange(-0.5, 8.5, 1.0)],
+            range=[[-args.end_diff_range_ns, args.end_diff_range_ns], [-0.5, 7.5]],
+            norm=matplotlib.colors.LogNorm(), cmap="viridis",
+        )[3]
+        fig.colorbar(mesh, ax=axis, label="Prompt-gated paired readouts / bin")
+        axis.set(
+            xticks=np.linspace(-args.end_diff_range_ns, args.end_diff_range_ns, 5),
+            xlabel="Lower-numbered end time − higher-numbered end time (ns; along-bar proxy)",
+            yticks=np.arange(8),
+            yticklabels=[f"{bar}  ({48 + bar}/{56 + bar})" for bar in range(8)],
+            ylabel="T5 bar row (bottom to top; bar number / TOF channel pair)",
+            title="T5 beam-profile proxy (end-time asymmetry × bar row)",
+            xlim=(-args.end_diff_range_ns, args.end_diff_range_ns), ylim=(-0.5, 7.5),
+        )
+        fig.suptitle("Not a calibrated spatial beam spot")
+        save_data(fig, args.output_dir / "beamline_prompt_t5_beam_profile_proxy.png", run_number)
+        t5_beamspot_summary["plot"] = "beamline_prompt_t5_beam_profile_proxy.png"
+
     # TOF panels are split into pages of no more than four plots.
     tof_items = list(tofs.items())
     t2_t0_zoom_summary = None
@@ -646,6 +688,7 @@ def run(args):
                    str(ch): sum(abs(value) > args.t0_residual_range_ns for value in values)
                    for ch, values in t0_residuals_after_equalization.items()},
                "t5_end_multiplicity": multiplicities.tolist(),
+               "t5_beam_profile_proxy": t5_beamspot_summary,
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates. The absolute four-channel average retains event-to-event common-mode timing spread; the per-channel residual plot subtracts the same-event median and therefore does not show that common-mode spread."}
     summary["reference_subtraction_diagnostic"] = {
