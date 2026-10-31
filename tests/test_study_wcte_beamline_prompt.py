@@ -67,6 +67,7 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "t0_channel_correction_comparison.png").stat().st_size > 0
     assert (out / "t0_channel_residuals_before_after_equalization.png").stat().st_size > 0
     assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
+    assert (out / "t0_channels_vs_reference_2d.png").stat().st_size > 0
     written_summary = json.loads((out / "summary.json").read_text())
     assert written_summary["prompt_gate_half_width_ns"] == 40
     diagnostic = written_summary["reference_subtraction_diagnostic"]

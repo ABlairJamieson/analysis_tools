@@ -367,9 +367,33 @@ def run(args):
         axes[1].legend(fontsize=8)
     axes[1].set(xlabel="T0 time after channel-31 subtraction (ns)",
                 ylabel="Readouts / bin", title="Per-channel single-subtraction check")
+    if corrected_all:
+        zoom_values = np.concatenate([*corrected_all, *direct_corrected_t0_by_channel.values()])
+        zoom_lo, zoom_hi = np.percentile(zoom_values, [0.2, 99.8])
+        padding = max((zoom_hi - zoom_lo) * 0.08, 1.0)
+        axes[1].set_xlim(zoom_lo - padding, zoom_hi + padding)
     fig.suptitle("T0 reference-subtraction diagnostic")
     fig.tight_layout()
     save_data(fig, args.output_dir / "t0_raw_vs_reference_subtraction.png", run_number)
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=True, sharey=True)
+    mesh = None
+    for channel, axis in zip(t0_channels, axes.flat):
+        channel_rows = [r for r in rows if channel in r["raw_times"]
+                        and r["reference31_raw"] is not None]
+        reference_values = np.asarray([r["reference31_raw"] for r in channel_rows], dtype=float)
+        channel_values = np.asarray([r["raw_times"][channel] for r in channel_rows], dtype=float)
+        if len(channel_values):
+            mesh = axis.hist2d(reference_values, channel_values, bins=80,
+                               norm=matplotlib.colors.LogNorm(), cmap="viridis")[-1]
+        axis.set(title=f"T0 channel {channel} (n={len(channel_values):,})",
+                 xlabel="Raw channel-31 reference time (ns)",
+                 ylabel="Raw T0 channel time (ns)")
+    if mesh is not None:
+        fig.colorbar(mesh, ax=axes.ravel().tolist(), label="Readouts / bin")
+    fig.suptitle("Raw T0 channel time versus raw channel-31 reference")
+    fig.tight_layout()
+    save_data(fig, args.output_dir / "t0_channels_vs_reference_2d.png", run_number)
 
     def in_gate(label, value):
         center = gates[label]["center_ns"]
@@ -510,6 +534,7 @@ def run(args):
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates. The absolute four-channel average retains event-to-event common-mode timing spread; the per-channel residual plot subtracts the same-event median and therefore does not show that common-mode spread."}
     summary["reference_subtraction_diagnostic"] = {
         "plot": "t0_raw_vs_reference_subtraction.png",
+        "correlation_plot": "t0_channels_vs_reference_2d.png",
         "per_channel": subtraction_checks,
         "note": "Each channel is checked against its own raw time minus raw channel 31. This tests the script's subtraction arithmetic but cannot infer whether an undocumented correction was applied upstream of the preserved ROOT branch."
     }
