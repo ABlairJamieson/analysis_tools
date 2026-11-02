@@ -36,6 +36,9 @@ def test_prompt_gated_beamline_outputs(tmp_path):
             "beamline_pmt_tdc_times": "var * float64",
             "beamline_pmt_qdc_ids": "var * int32",
             "beamline_pmt_qdc_charges": "var * float64",
+            "hit_pmt_charges": "var * float64",
+            "hit_pmt_readout_mask": "var * int32",
+            "T5_HasInTimeWindow": "bool",
             "vme_digi_issues_bitmask": "int32",
         })
         tree.extend({
@@ -43,6 +46,9 @@ def test_prompt_gated_beamline_outputs(tmp_path):
             "beamline_pmt_tdc_times": ak.Array([raw_times, raw_times, raw_times]),
             "beamline_pmt_qdc_ids": ak.Array([[32, 37, 17]] * 3),
             "beamline_pmt_qdc_charges": ak.Array([[100.0, 200.0, 300.0]] * 3),
+            "hit_pmt_charges": ak.Array([[100.0, 200.0]] * 3),
+            "hit_pmt_readout_mask": ak.Array([[0, 1]] * 3),
+            "T5_HasInTimeWindow": np.array([False, True, False], dtype=np.bool_),
             "vme_digi_issues_bitmask": np.array([0, 0, 0], dtype=np.int32),
         })
     out = tmp_path / "prompt"
@@ -74,7 +80,9 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
     assert (out / "t0_channels_vs_reference_2d.png").stat().st_size > 0
     assert (out / "t0_beam_spot_timing_proxy.png").stat().st_size > 0
-    assert (out / "beamline_hd_charge_cut_progression.png").stat().st_size > 0
+    for page in ("hd_0-3", "hd_4-7", "hd_8-11", "hd_12-14"):
+        assert (out / f"beamline_hd_charge_cut_progression_{page}.png").stat().st_size > 0
+        assert (out / f"beamline_wcte_charge_cut_progression_{page}.png").stat().st_size > 0
     written_summary = json.loads((out / "summary.json").read_text())
     assert written_summary["prompt_gate_half_width_ns"] == 40
     diagnostic = written_summary["reference_subtraction_diagnostic"]
@@ -89,8 +97,17 @@ def test_prompt_gated_beamline_outputs(tmp_path):
         "Raw": 3, "Beamline quality": 3, "Prompt T0": 3,
         "Prompt T0 + first T2-T0 peak": 3}
     hd_charge_plot = written_summary["hd_charge_cut_progression"]
-    assert hd_charge_plot["display_range_input_units"] == [0.0, 2000.0]
+    assert hd_charge_plot["display_range_input_units"] == [0.0, 3000.0]
     assert hd_charge_plot["histogram_bins"] == 100
+    assert len(hd_charge_plot["plots"]) == 4
+    wcte_progression = written_summary["wcte_charge_cut_progression_by_hd_tdc"]
+    assert wcte_progression["stages"] == [
+        "HD TDC hit", "+ T0 prompt", "+ no HC hit", "+ first T2-T0 peak",
+        "+ no T5 prompt hit"]
+    assert wcte_progression["readout_counts_by_hd_and_stage"]["0"]["HD TDC hit"] == 3
+    assert wcte_progression["readout_counts_by_hd_and_stage"]["0"]["+ no T5 prompt hit"] == 2
+    assert wcte_progression["charge_counts_by_hd_and_stage"]["0"]["HD TDC hit"] == 3
+    assert wcte_progression["charge_definition"].startswith("sum of finite hit_pmt_charges")
     tof_peak = written_summary["hd_charge_cut_progression"]["first_t2_t0_peak"]
     assert tof_peak["center_ns"] is not None
     assert tof_peak["window_ns"] == [tof_peak["center_ns"] - 0.5,

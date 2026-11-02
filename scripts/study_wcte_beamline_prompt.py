@@ -5,7 +5,8 @@ Beamline TDC channels are corrected using the first hit on reference channel 31
 for IDs <=31 and channel 46 for IDs >31. This is the production beam-monitor
 convention; it does not align the beamline clock to WCTE PMT time. A fixed
 per-detector prompt gate is found once from the main peak and then applied to
-all readouts. WCTE PMT branches and WCTE PMT quality masks are not used.
+all readouts. When available, WCTE charge is summarized per readout for each
+HD-TDC-tagged sample through cumulative beamline selection stages.
 """
 
 from __future__ import annotations
@@ -39,8 +40,11 @@ HD_CHANNELS = {**{32 + i: i for i in range(7)}, 16: 7,
                **{17 + i: i + 8 for i in range(7)}}
 REQUIRED = ("beamline_pmt_tdc_ids", "beamline_pmt_tdc_times")
 QDC_BRANCHES = ("beamline_pmt_qdc_ids", "beamline_pmt_qdc_charges")
-HD_CHARGE_DISPLAY_RANGE = (0.0, 2000.0)
+HD_CHARGE_DISPLAY_RANGE = (0.0, 3000.0)
 HD_CHARGE_HIST_BINS = 100
+HC2_CHANNEL = 11
+WCTE_CHARGE_BRANCHES = ("hit_pmt_charges", "hit_pmt_readout_mask")
+T5_PROMPT_BRANCH = "T5_HasInTimeWindow"
 
 
 def main_peak(values: list[float], *, bin_ns: float = 2.0) -> tuple[float, float, int]:
@@ -204,10 +208,13 @@ def run(args):
         available = set(tree.keys())
         has_quality = "vme_digi_issues_bitmask" in available
         has_qdc = all(name in available for name in QDC_BRANCHES)
+        has_wcte_charge = all(name in available for name in WCTE_CHARGE_BRANCHES)
+        has_t5_prompt_flag = T5_PROMPT_BRANCH in available
         partial_qdc = any(name in available for name in QDC_BRANCHES) and not has_qdc
         if partial_qdc:
             raise ValueError("ROOT file must contain both QDC branches: " + ", ".join(QDC_BRANCHES))
-        optional = [name for name in ("vme_digi_issues_bitmask", "run_id", *QDC_BRANCHES)
+        optional = [name for name in ("vme_digi_issues_bitmask", "run_id", *QDC_BRANCHES,
+                                      *WCTE_CHARGE_BRANCHES, T5_PROMPT_BRANCH)
                     if name in available]
         start = args.entry_start
         stop = min(tree.num_entries, start + args.max_events)
@@ -270,9 +277,25 @@ def run(args):
                 mean = (times[left] + times[right]) / 2
                 t5_bars.append((bar, mean, end_delta))
         hd_times = {HD_CHANNELS[ch]: times[ch] for ch in HD_CHANNELS if ch in times}
+        wcte_charge = None
+        if has_wcte_charge:
+            charges = ak.to_list(arrays["hit_pmt_charges"][i])
+            masks = ak.to_list(arrays["hit_pmt_readout_mask"][i])
+            if charges is not None and masks is not None and len(charges) == len(masks):
+                good_charges = [float(charge) for charge, mask in zip(charges, masks)
+                                if charge is not None and mask is not None and int(mask) == 0
+                                and np.isfinite(float(charge))]
+                wcte_charge = float(np.sum(good_charges))
+        t5_in_time_window = None
+        if has_t5_prompt_flag:
+            value = ak.to_list(arrays[T5_PROMPT_BRANCH][i])
+            if value is not None:
+                t5_in_time_window = bool(value)
         rows.append({"entry": start + i, "times": times, "raw_times": raw_times,
                      "reference31_raw": refs[0], "t0": t0, "t0_raw": t0_raw, "t2": t2,
-                     "t5_bars": t5_bars, "hd": hd_times})
+                     "t5_bars": t5_bars, "hd": hd_times,
+                     "wcte_charge": wcte_charge,
+                     "t5_in_time_window": t5_in_time_window})
 
     # Determine every fixed peak once from beamline-quality readouts. T5 gates
     # are per bar because cable/geometry offsets can differ between bars.
@@ -599,59 +622,68 @@ def run(args):
         stage_legend_labels = {"Raw": "Raw", "Beamline quality": "Beamline quality",
                                "Prompt T0": "Prompt T0",
                                "Prompt T0 + first T2-T0 peak": "T0 + first TOF peak"}
-        fig, axes = plt.subplots(3, 5, figsize=(17, 10), sharey=False)
         charge_counts = {}
         charge_out_of_range = {}
         charge_edges = np.linspace(*HD_CHARGE_DISPLAY_RANGE, HD_CHARGE_HIST_BINS + 1)
-        legend_handles = {}
-        for element, axis in enumerate(axes.flat):
-            tdc_channel = next(ch for ch, hd_element in HD_CHANNELS.items()
-                               if hd_element == element)
-            by_stage = {
-                stage: qdc_charge_matrix[indices, element][
-                    np.isfinite(qdc_charge_matrix[indices, element])].astype(float)
-                for stage, indices in stage_indices.items()
-            }
-            all_values = by_stage["Raw"]
-            charge_counts[str(element)] = {stage: int(len(values))
-                                           for stage, values in by_stage.items()}
-            charge_out_of_range[str(element)] = {
-                stage: {"below_range": int(np.count_nonzero(values < HD_CHARGE_DISPLAY_RANGE[0])),
-                        "above_range": int(np.count_nonzero(values > HD_CHARGE_DISPLAY_RANGE[1]))}
-                for stage, values in by_stage.items()
-            }
-            if not len(all_values):
-                axis.text(0.5, 0.5, "no QDC entries", ha="center", va="center",
-                          transform=axis.transAxes)
-                axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})")
-                continue
-            for stage, values in by_stage.items():
-                if len(values):
-                    _, _, artists = axis.hist(values, bins=charge_edges, histtype="step", linewidth=1.2,
-                                              color=stage_colors[stage],
-                                              label=stage_legend_labels[stage])
-                    if artists:
-                        legend_handles.setdefault(stage, artists[0])
-            axis.set_yscale("log")
-            axis.set_ylim(bottom=0.5)
-            counts_label = "/".join(f"{len(by_stage[stage]):,}" for stage in stage_indices)
-            axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})\n"
-                           f"entries raw/quality/T0/T0+TOF: {counts_label}", fontsize=8)
-            axis.set_xlabel("QDC charge (input units)", fontsize=8)
-            axis.set_ylabel("Readouts / bin", fontsize=8)
-            axis.set_xlim(*HD_CHARGE_DISPLAY_RANGE)
-            axis.tick_params(labelsize=8)
-        if legend_handles:
-            fig.legend(list(legend_handles.values()), list(legend_handles),
-                       loc="upper center", ncol=4, fontsize=8,
-                       bbox_to_anchor=(0.5, 0.995))
-        fig.suptitle("HD charge distributions through cumulative prompt-selection stages\n"
-                     f"Final stage: T0 prompt + first T2−T0 peak ({first_tof_center:.2f} ± "
-                     f"{first_tof_half_width:.2f} ns); provisional QDC/TDC channel match; no charge cut",
-                     y=1.04)
-        fig.tight_layout(rect=(0, 0, 1, 0.91))
-        save_data(fig, args.output_dir / "beamline_hd_charge_cut_progression.png", run_number)
-        hd_charge_progression.update({"plot": "beamline_hd_charge_cut_progression.png",
+        plot_files = []
+        element_groups = (range(0, 4), range(4, 8), range(8, 12), range(12, 15))
+        for page, elements in enumerate(element_groups, start=1):
+            fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharey=False)
+            legend_handles = {}
+            elements = list(elements)
+            for element, axis in zip(elements, axes.flat):
+                tdc_channel = next(ch for ch, hd_element in HD_CHANNELS.items()
+                                   if hd_element == element)
+                by_stage = {
+                    stage: qdc_charge_matrix[indices, element][
+                        np.isfinite(qdc_charge_matrix[indices, element])].astype(float)
+                    for stage, indices in stage_indices.items()
+                }
+                all_values = by_stage["Raw"]
+                charge_counts[str(element)] = {stage: int(len(values))
+                                               for stage, values in by_stage.items()}
+                charge_out_of_range[str(element)] = {
+                    stage: {"below_range": int(np.count_nonzero(values < HD_CHARGE_DISPLAY_RANGE[0])),
+                            "above_range": int(np.count_nonzero(values > HD_CHARGE_DISPLAY_RANGE[1]))}
+                    for stage, values in by_stage.items()
+                }
+                if not len(all_values):
+                    axis.text(0.5, 0.5, "no QDC entries", ha="center", va="center",
+                              transform=axis.transAxes)
+                    axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})")
+                    axis.set_xlim(*HD_CHARGE_DISPLAY_RANGE)
+                    continue
+                for stage, values in by_stage.items():
+                    if len(values):
+                        _, _, artists = axis.hist(values, bins=charge_edges, histtype="step",
+                                                  linewidth=1.2, color=stage_colors[stage],
+                                                  label=stage_legend_labels[stage])
+                        if artists:
+                            legend_handles.setdefault(stage, artists[0])
+                axis.set_yscale("log")
+                axis.set_ylim(bottom=0.5)
+                counts_label = "/".join(f"{len(by_stage[stage]):,}" for stage in stage_indices)
+                axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})\n"
+                               f"entries raw/quality/T0/T0+TOF: {counts_label}", fontsize=9)
+                axis.set_xlabel("QDC charge (input units)")
+                axis.set_ylabel("Readouts / bin")
+                axis.set_xlim(*HD_CHARGE_DISPLAY_RANGE)
+            for axis in axes.flat[len(elements):]:
+                axis.set_visible(False)
+            if legend_handles:
+                fig.legend(list(legend_handles.values()), list(legend_handles),
+                           loc="upper center", ncol=4, fontsize=9,
+                           bbox_to_anchor=(0.5, 0.98))
+            first_element, last_element = elements[0], elements[-1]
+            fig.suptitle(f"HD charge cut progression — HD{first_element}–HD{last_element}\n"
+                         f"Final: T0 prompt + first T2−T0 peak ({first_tof_center:.2f} ± "
+                         f"{first_tof_half_width:.2f} ns); provisional QDC/TDC channel match; no charge cut",
+                         y=1.02)
+            fig.tight_layout(rect=(0, 0, 1, 0.91))
+            filename = f"beamline_hd_charge_cut_progression_hd_{first_element}-{last_element}.png"
+            save_data(fig, args.output_dir / filename, run_number)
+            plot_files.append(filename)
+        hd_charge_progression.update({"plots": plot_files,
                                       "display_range_input_units": list(HD_CHARGE_DISPLAY_RANGE),
                                       "histogram_bins": HD_CHARGE_HIST_BINS,
                                       "counts_by_element_and_stage": charge_counts,
@@ -676,6 +708,128 @@ def run(args):
                                       }})
     else:
         hd_charge_progression["note"] = "QDC branches are absent; no HD charge plots were produced."
+
+    wcte_charge_progression = {
+        "available": bool(has_wcte_charge),
+        "plots": [],
+        "charge_definition": "sum of finite hit_pmt_charges where hit_pmt_readout_mask == 0; no WCTE event-quality selection",
+        "t5_prompt_veto_available": bool(has_t5_prompt_flag),
+        "hc_tdc_channel": HC2_CHANNEL,
+    }
+    if has_wcte_charge:
+        stage_names = ["HD TDC hit", "+ T0 prompt", "+ no HC hit", "+ first T2-T0 peak"]
+        stage_colors = ["0.35", "tab:blue", "tab:orange", "tab:green", "tab:red"]
+        if has_t5_prompt_flag:
+            stage_names.append("+ no T5 prompt hit")
+        selected_rows: dict[int, dict[str, list[dict]]] = {}
+        raw_charge_values = []
+        charge_counts_by_hd: dict[str, dict[str, int]] = {}
+        readout_counts_by_hd: dict[str, dict[str, int]] = {}
+        for element in range(15):
+            hd_rows = [row for row in rows if element in row["hd"]]
+            t0_rows = [row for row in hd_rows if in_gate(t0_label, row["t0"])]
+            no_hc_rows = [row for row in t0_rows if HC2_CHANNEL not in row["times"]]
+            tof_rows = [row for row in no_hc_rows
+                        if row["t2"] is not None and np.isfinite(first_tof_center)
+                        and first_tof_bounds[0] <= row["t2"] - row["t0"] <= first_tof_bounds[1]]
+            stages = {"HD TDC hit": hd_rows,
+                      "+ T0 prompt": t0_rows,
+                      "+ no HC hit": no_hc_rows,
+                      "+ first T2-T0 peak": tof_rows}
+            if has_t5_prompt_flag:
+                stages["+ no T5 prompt hit"] = [row for row in tof_rows
+                                                  if row["t5_in_time_window"] is False]
+            selected_rows[element] = stages
+            for row in hd_rows:
+                if row["wcte_charge"] is not None:
+                    raw_charge_values.append(row["wcte_charge"])
+            readout_counts_by_hd[str(element)] = {
+                stage: len(stage_rows) for stage, stage_rows in stages.items()}
+            charge_counts_by_hd[str(element)] = {
+                stage: sum(row["wcte_charge"] is not None for row in stage_rows)
+                for stage, stage_rows in stages.items()}
+
+        if raw_charge_values:
+            charge_low = min(0.0, float(np.percentile(raw_charge_values, 0.1)))
+            charge_high = float(np.percentile(raw_charge_values, 99.5))
+            if not np.isfinite(charge_high) or charge_high <= charge_low:
+                charge_high = max(charge_low + 1.0, float(np.max(raw_charge_values)))
+            charge_edges = np.linspace(charge_low, charge_high, 101)
+        else:
+            charge_low, charge_high = 0.0, 1.0
+            charge_edges = np.linspace(charge_low, charge_high, 101)
+
+        overflow_by_hd: dict[str, dict[str, dict[str, int]]] = {}
+        for page, elements in enumerate((range(0, 4), range(4, 8),
+                                         range(8, 12), range(12, 15)), start=1):
+            elements = list(elements)
+            fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharey=False)
+            for element, axis in zip(elements, axes.flat):
+                stages = selected_rows[element]
+                overflow_by_hd[str(element)] = {}
+                for color, stage in zip(stage_colors, stage_names):
+                    stage_rows = stages.get(stage, [])
+                    values = np.asarray([row["wcte_charge"] for row in stage_rows
+                                         if row["wcte_charge"] is not None], dtype=float)
+                    overflow_by_hd[str(element)][stage] = {
+                        "below_range": int(np.count_nonzero(values < charge_low)),
+                        "above_range": int(np.count_nonzero(values > charge_high)),
+                    }
+                    if len(values):
+                        axis.hist(values, bins=charge_edges, histtype="step", linewidth=1.3,
+                                  color=color, label=f"{stage} (n={len(values):,})")
+                axis.set_yscale("log")
+                axis.set_ylim(bottom=0.5)
+                channel = next(ch for ch, hd_element in HD_CHANNELS.items()
+                               if hd_element == element)
+                axis.set(title=f"HD{element} TDC ch {channel}",
+                         xlabel="WCTE total PMT charge (input units)",
+                         ylabel="Readouts / bin", xlim=(charge_low, charge_high))
+                axis.legend(fontsize=7)
+            for axis in axes.flat[len(elements):]:
+                axis.set_visible(False)
+            first_element, last_element = elements[0], elements[-1]
+            fig.suptitle(f"WCTE charge by HD TDC tag — HD{first_element}–HD{last_element}\n"
+                         "Cumulative cuts: T0 prompt → no HC2 TDC hit → first T2−T0 peak"
+                         + (" → no T5 prompt-window hit" if has_t5_prompt_flag else ""), y=1.02)
+            fig.tight_layout(rect=(0, 0, 1, 0.94))
+            filename = f"beamline_wcte_charge_cut_progression_hd_{first_element}-{last_element}.png"
+            save_data(fig, args.output_dir / filename, run_number)
+            wcte_charge_progression["plots"].append(filename)
+
+        wcte_charge_progression.update({
+            "display_range_input_units": [charge_low, charge_high],
+            "display_range_upper_percentile": 99.5,
+            "histogram_bins": 100,
+            "readout_counts_by_hd_and_stage": readout_counts_by_hd,
+            "charge_counts_by_hd_and_stage": charge_counts_by_hd,
+            "out_of_display_range_by_hd_and_stage": overflow_by_hd,
+            "stages": stage_names,
+            "stage_definitions": {
+                "HD TDC hit": "beamline-quality readouts containing that HD element's mapped TDC channel",
+                "+ T0 prompt": "HD-tagged readout also falls within the fixed four-channel T0 prompt gate",
+                "+ no HC hit": f"T0-prompt sample with no HC2 TDC channel {HC2_CHANNEL} hit",
+                "+ first T2-T0 peak": "HC-vetoed sample with T2−T0 inside the first significant peak gate",
+                "+ no T5 prompt hit": ("TOF-selected sample with T5_HasInTimeWindow == false" if has_t5_prompt_flag
+                                         else "unavailable: T5_HasInTimeWindow branch is absent"),
+            },
+            "first_t2_t0_peak": {
+                "center_ns": float(first_tof_center) if np.isfinite(first_tof_center) else None,
+                "half_width_ns": float(first_tof_half_width),
+            },
+            "notes": [
+                "The first stage is already restricted to beamline-quality readouts (both reference channels and clear VME digitiser issue flag when present).",
+                "WCTE charge is summed over finite PMT hits whose per-hit readout mask is zero; no event-level WCTE quality cut is applied.",
+                "The displayed charge range is common across HD elements and clips only the highest 0.5% of the initial HD-tagged charge distribution; clipped counts are reported.",
+            ],
+        })
+        if not has_t5_prompt_flag:
+            wcte_charge_progression["note"] = (
+                "T5_HasInTimeWindow is absent; plots end at the TOF stage, so the requested T5 veto stage was not applied.")
+    else:
+        wcte_charge_progression["note"] = (
+            "hit_pmt_charges and/or hit_pmt_readout_mask branches are absent; no WCTE charge plots were produced.")
+
     tofs["T0-T5"] = [x for values in t5_bar_tofs for x in values]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
@@ -872,6 +1026,7 @@ def run(args):
                "t5_end_multiplicity": multiplicities.tolist(),
                "t5_beam_profile_proxy": t5_beamspot_summary,
                "hd_charge_cut_progression": hd_charge_progression,
+               "wcte_charge_cut_progression_by_hd_tdc": wcte_charge_progression,
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates. The absolute four-channel average retains event-to-event common-mode timing spread; the per-channel residual plot subtracts the same-event median and therefore does not show that common-mode spread."}
     summary["reference_subtraction_diagnostic"] = {
