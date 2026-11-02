@@ -39,6 +39,8 @@ HD_CHANNELS = {**{32 + i: i for i in range(7)}, 16: 7,
                **{17 + i: i + 8 for i in range(7)}}
 REQUIRED = ("beamline_pmt_tdc_ids", "beamline_pmt_tdc_times")
 QDC_BRANCHES = ("beamline_pmt_qdc_ids", "beamline_pmt_qdc_charges")
+HD_CHARGE_DISPLAY_RANGE = (0.0, 2000.0)
+HD_CHARGE_HIST_BINS = 100
 
 
 def main_peak(values: list[float], *, bin_ns: float = 2.0) -> tuple[float, float, int]:
@@ -599,6 +601,8 @@ def run(args):
                                "Prompt T0 + first T2-T0 peak": "T0 + first TOF peak"}
         fig, axes = plt.subplots(3, 5, figsize=(17, 10), sharey=False)
         charge_counts = {}
+        charge_out_of_range = {}
+        charge_edges = np.linspace(*HD_CHARGE_DISPLAY_RANGE, HD_CHARGE_HIST_BINS + 1)
         legend_handles = {}
         for element, axis in enumerate(axes.flat):
             tdc_channel = next(ch for ch, hd_element in HD_CHANNELS.items()
@@ -611,18 +615,19 @@ def run(args):
             all_values = by_stage["Raw"]
             charge_counts[str(element)] = {stage: int(len(values))
                                            for stage, values in by_stage.items()}
+            charge_out_of_range[str(element)] = {
+                stage: {"below_range": int(np.count_nonzero(values < HD_CHARGE_DISPLAY_RANGE[0])),
+                        "above_range": int(np.count_nonzero(values > HD_CHARGE_DISPLAY_RANGE[1]))}
+                for stage, values in by_stage.items()
+            }
             if not len(all_values):
                 axis.text(0.5, 0.5, "no QDC entries", ha="center", va="center",
                           transform=axis.transAxes)
                 axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})")
                 continue
-            low, high = np.percentile(all_values, [0.5, 99.5])
-            if high <= low:
-                low, high = low - 0.5, high + 0.5
-            edges = np.linspace(low, high, 81)
             for stage, values in by_stage.items():
                 if len(values):
-                    _, _, artists = axis.hist(values, bins=edges, histtype="step", linewidth=1.2,
+                    _, _, artists = axis.hist(values, bins=charge_edges, histtype="step", linewidth=1.2,
                                               color=stage_colors[stage],
                                               label=stage_legend_labels[stage])
                     if artists:
@@ -634,6 +639,7 @@ def run(args):
                            f"entries raw/quality/T0/T0+TOF: {counts_label}", fontsize=8)
             axis.set_xlabel("QDC charge (input units)", fontsize=8)
             axis.set_ylabel("Readouts / bin", fontsize=8)
+            axis.set_xlim(*HD_CHARGE_DISPLAY_RANGE)
             axis.tick_params(labelsize=8)
         if legend_handles:
             fig.legend(list(legend_handles.values()), list(legend_handles),
@@ -646,7 +652,10 @@ def run(args):
         fig.tight_layout(rect=(0, 0, 1, 0.91))
         save_data(fig, args.output_dir / "beamline_hd_charge_cut_progression.png", run_number)
         hd_charge_progression.update({"plot": "beamline_hd_charge_cut_progression.png",
+                                      "display_range_input_units": list(HD_CHARGE_DISPLAY_RANGE),
+                                      "histogram_bins": HD_CHARGE_HIST_BINS,
                                       "counts_by_element_and_stage": charge_counts,
+                                      "out_of_display_range_counts_by_element_and_stage": charge_out_of_range,
                                       "stages": ["Raw", "Beamline quality", "Prompt T0",
                                                  "Prompt T0 + first T2-T0 peak"],
                                       "stage_definitions": {

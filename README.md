@@ -285,7 +285,9 @@ T0 gate plus a configurable window around the earliest significant T2−T0 TOF
 peak. That first peak is a positron-enriched selection intended to suppress
 slower proton/deuteron populations; it is not a particle ID by itself. The TOF
 peak window defaults to ±0.5 ns around a data-driven peak center and can be
-changed with `--tof-first-peak-half-width-ns`. These are cumulative diagnostic
+changed with `--tof-first-peak-half-width-ns`. Every HD charge panel uses the
+same 0–2000 input-unit x-range and 100 bins (20 units/bin); under/overflow
+counts are recorded in the summary. These are cumulative diagnostic
 selections, not HD charge cuts. QDC-to-HD mapping is provisionally assumed to
 use matching QDC and TDC channel IDs; validate that mapping before using the
 charge distributions for a physics selection. Per-element entry counts and the

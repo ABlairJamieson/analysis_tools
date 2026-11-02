@@ -88,6 +88,9 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert hd_charge_counts["0"] == {
         "Raw": 3, "Beamline quality": 3, "Prompt T0": 3,
         "Prompt T0 + first T2-T0 peak": 3}
+    hd_charge_plot = written_summary["hd_charge_cut_progression"]
+    assert hd_charge_plot["display_range_input_units"] == [0.0, 2000.0]
+    assert hd_charge_plot["histogram_bins"] == 100
     tof_peak = written_summary["hd_charge_cut_progression"]["first_t2_t0_peak"]
     assert tof_peak["center_ns"] is not None
     assert tof_peak["window_ns"] == [tof_peak["center_ns"] - 0.5,
