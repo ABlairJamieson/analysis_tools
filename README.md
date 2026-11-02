@@ -278,6 +278,18 @@ reference-subtracted times but no channel-by-channel equalization; the common
 reference cancels in both differences. Treat its center and spread as timing
 proxies, not calibrated beam position, until channel delays and bar timing
 response are calibrated.
+When the ROOT file includes both beamline QDC branches, the same study also
+writes `beamline_hd_charge_cut_progression.png`: per-element HD charge spectra
+for raw readouts, beamline-quality readouts, the prompt-T0 gate, and the prompt
+T0 gate plus a configurable window around the earliest significant T2−T0 TOF
+peak. That first peak is a positron-enriched selection intended to suppress
+slower proton/deuteron populations; it is not a particle ID by itself. The TOF
+peak window defaults to ±0.5 ns around a data-driven peak center and can be
+changed with `--tof-first-peak-half-width-ns`. These are cumulative diagnostic
+selections, not HD charge cuts. QDC-to-HD mapping is provisionally assumed to
+use matching QDC and TDC channel IDs; validate that mapping before using the
+charge distributions for a physics selection. Per-element entry counts and the
+selected TOF window are in `summary.json` under `hd_charge_cut_progression`.
 `beamline_prompt_tof_page_*.png` contains the T2−T0, T0−T5, and selected HD
 timing panels; the T2−T0 panel overlays all readouts with both groups present
 and the subset passing both fixed prompt gates, zoomed to the central 99% of

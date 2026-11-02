@@ -18,10 +18,11 @@ def test_main_peak_and_production_style_group_average():
 
 def test_prompt_gated_beamline_outputs(tmp_path):
     root_path = tmp_path / "WCTE_merged_production_R1827.root"
-    ids = [31, 46, *range(8), *range(48, 64), 32, 37, 17]
+    ids = [31, 46, *range(9), *range(48, 64), 32, 37, 17]
     corrected_times = [
         1000, 2000,
         1000, 1001, 1002, 1003, 1010, 1011, 1012, 1013,
+        1014,
         *[1030 + (ch - 48) * 0.1 for ch in range(48, 56)],
         *[1032 + (ch - 56) * 0.1 for ch in range(56, 64)],
         1040, 1047, 1045,
@@ -33,11 +34,15 @@ def test_prompt_gated_beamline_outputs(tmp_path):
         tree = root.mktree("WCTEReadoutWindows", {
             "beamline_pmt_tdc_ids": "var * int32",
             "beamline_pmt_tdc_times": "var * float64",
+            "beamline_pmt_qdc_ids": "var * int32",
+            "beamline_pmt_qdc_charges": "var * float64",
             "vme_digi_issues_bitmask": "int32",
         })
         tree.extend({
             "beamline_pmt_tdc_ids": ak.Array([ids, ids, ids]),
             "beamline_pmt_tdc_times": ak.Array([raw_times, raw_times, raw_times]),
+            "beamline_pmt_qdc_ids": ak.Array([[32, 37, 17]] * 3),
+            "beamline_pmt_qdc_charges": ak.Array([[100.0, 200.0, 300.0]] * 3),
             "vme_digi_issues_bitmask": np.array([0, 0, 0], dtype=np.int32),
         })
     out = tmp_path / "prompt"
@@ -69,6 +74,7 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
     assert (out / "t0_channels_vs_reference_2d.png").stat().st_size > 0
     assert (out / "t0_beam_spot_timing_proxy.png").stat().st_size > 0
+    assert (out / "beamline_hd_charge_cut_progression.png").stat().st_size > 0
     written_summary = json.loads((out / "summary.json").read_text())
     assert written_summary["prompt_gate_half_width_ns"] == 40
     diagnostic = written_summary["reference_subtraction_diagnostic"]
@@ -78,6 +84,14 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert diagnostic["per_channel"]["0"]["raw_channel31_median_ns"] == 1000
     assert diagnostic["per_channel"]["0"]["corrected_channel_median_ns"] == 1000
     assert diagnostic["per_channel"]["0"]["max_abs_difference_current_vs_direct_ns"] == 0
+    hd_charge_counts = written_summary["hd_charge_cut_progression"]["counts_by_element_and_stage"]
+    assert hd_charge_counts["0"] == {
+        "Raw": 3, "Beamline quality": 3, "Prompt T0": 3,
+        "Prompt T0 + first T2-T0 peak": 3}
+    tof_peak = written_summary["hd_charge_cut_progression"]["first_t2_t0_peak"]
+    assert tof_peak["center_ns"] is not None
+    assert tof_peak["window_ns"] == [tof_peak["center_ns"] - 0.5,
+                                     tof_peak["center_ns"] + 0.5]
     zoom = written_summary["t2_t0_histogram_zoom"]
     assert zoom["all_pairs_total"] == 3
     assert zoom["all_pairs_in_view"] == 3

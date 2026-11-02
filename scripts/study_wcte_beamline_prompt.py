@@ -38,6 +38,7 @@ T5_BARS = tuple((48 + bar, 56 + bar) for bar in range(8))
 HD_CHANNELS = {**{32 + i: i for i in range(7)}, 16: 7,
                **{17 + i: i + 8 for i in range(7)}}
 REQUIRED = ("beamline_pmt_tdc_ids", "beamline_pmt_tdc_times")
+QDC_BRANCHES = ("beamline_pmt_qdc_ids", "beamline_pmt_qdc_charges")
 
 
 def main_peak(values: list[float], *, bin_ns: float = 2.0) -> tuple[float, float, int]:
@@ -53,6 +54,34 @@ def main_peak(values: list[float], *, bin_ns: float = 2.0) -> tuple[float, float
     counts, edges = np.histogram(data, bins=edges)
     index = int(np.argmax(counts))
     return float((edges[index] + edges[index + 1]) / 2), float(counts[index]), len(data)
+
+
+def first_significant_peak(values: list[float], *, bin_ns: float = 0.2,
+                           min_fraction: float = 0.10) -> tuple[float, int, int]:
+    """Find the earliest locally maximal TOF bin above a fraction of the tallest peak.
+
+    A short moving average damps single-bin noise. The returned center is a
+    data-driven gate anchor, not a particle identification by itself.
+    """
+    data = np.asarray(values, dtype=float)
+    data = data[np.isfinite(data)]
+    if not len(data):
+        return float("nan"), 0, 0
+    lo, hi = np.percentile(data, [0.1, 99.9])
+    if hi <= lo:
+        return float(data[0]), int(len(data)), int(len(data))
+    edges = np.arange(lo, hi + bin_ns, bin_ns)
+    if len(edges) < 2:
+        edges = np.asarray([lo, lo + bin_ns])
+    counts, edges = np.histogram(data, bins=edges)
+    smooth = (np.convolve(counts.astype(float), np.asarray([1, 2, 3, 2, 1]) / 9.0,
+                          mode="same") if len(counts) >= 5 else counts.astype(float))
+    threshold = float(np.max(smooth)) * min_fraction
+    peaks = [i for i in range(1, len(smooth) - 1)
+             if smooth[i] >= smooth[i - 1] and smooth[i] > smooth[i + 1]
+             and smooth[i] >= threshold]
+    index = peaks[0] if peaks else int(np.argmax(smooth))
+    return float((edges[index] + edges[index + 1]) / 2), int(counts[index]), int(len(data))
 
 
 def robust_group_mean(channel_times: dict[int, float], channels: tuple[int, ...],
@@ -159,6 +188,12 @@ def run(args):
     args.output_dir.mkdir(parents=True, exist_ok=True)
     t0_channels = tuple(getattr(args, "t0_channels", T0_CHANNELS))
     t2_channels = tuple(getattr(args, "t2_channels", T2_CHANNELS))
+    tof_peak_bin_ns = getattr(args, "tof_peak_bin_ns", 0.2)
+    tof_first_peak_half_width_ns = getattr(args, "tof_first_peak_half_width_ns", 0.5)
+    tof_first_peak_min_fraction = getattr(args, "tof_first_peak_min_fraction", 0.10)
+    if (tof_peak_bin_ns <= 0 or tof_first_peak_half_width_ns <= 0
+            or not 0 < tof_first_peak_min_fraction <= 1):
+        raise ValueError("TOF peak bin/half-width must be positive and minimum peak fraction in (0, 1]")
     with uproot.open(args.input_root) as root:
         tree = root[args.tree]
         missing = set(REQUIRED) - set(tree.keys())
@@ -166,7 +201,11 @@ def run(args):
             raise ValueError("Missing ROOT branches: " + ", ".join(sorted(missing)))
         available = set(tree.keys())
         has_quality = "vme_digi_issues_bitmask" in available
-        optional = [name for name in ("vme_digi_issues_bitmask", "run_id")
+        has_qdc = all(name in available for name in QDC_BRANCHES)
+        partial_qdc = any(name in available for name in QDC_BRANCHES) and not has_qdc
+        if partial_qdc:
+            raise ValueError("ROOT file must contain both QDC branches: " + ", ".join(QDC_BRANCHES))
+        optional = [name for name in ("vme_digi_issues_bitmask", "run_id", *QDC_BRANCHES)
                     if name in available]
         start = args.entry_start
         stop = min(tree.num_entries, start + args.max_events)
@@ -183,9 +222,26 @@ def run(args):
             run_number = int(match.group(1)) if match else None
 
     rows = []
+    qdc_charge_matrix = (np.full((stop - start, 15), np.nan, dtype=np.float32)
+                         if has_qdc else None)
     reference_good = 0
     missing_reference = {"31": 0, "46": 0}
     for i in range(stop - start):
+        if has_qdc:
+            qdc_ids = ak.to_list(arrays[QDC_BRANCHES[0]][i])
+            qdc_values = ak.to_list(arrays[QDC_BRANCHES[1]][i])
+            if qdc_ids is not None and qdc_values is not None:
+                for channel, charge in zip(qdc_ids, qdc_values):
+                    if channel is None or charge is None:
+                        continue
+                    charge = float(charge)
+                    channel = int(channel)
+                    if channel in HD_CHANNELS and np.isfinite(charge):
+                        element = HD_CHANNELS[channel]
+                        # Match the existing beam-monitor loader's first-hit
+                        # behavior when a channel is repeated in one readout.
+                        if np.isnan(qdc_charge_matrix[i, element]):
+                            qdc_charge_matrix[i, element] = charge
         times, raw_times, refs = first_hits(arrays[REQUIRED[0]][i], arrays[REQUIRED[1]][i])
         if refs[0] is None:
             missing_reference["31"] += 1
@@ -470,6 +526,17 @@ def run(args):
         center = gates[label]["center_ns"]
         return value is not None and np.isfinite(center) and abs(value - center) <= args.prompt_half_width_ns
 
+    t0_prompt_tof_values = [row["t2"] - row["t0"] for row in rows
+                            if row["t2"] is not None and in_gate(t0_label, row["t0"])]
+    first_tof_center, first_tof_peak_bin_count, first_tof_entries = first_significant_peak(
+        t0_prompt_tof_values,
+        bin_ns=tof_peak_bin_ns,
+        min_fraction=tof_first_peak_min_fraction,
+    )
+    first_tof_half_width = tof_first_peak_half_width_ns
+    first_tof_bounds = (first_tof_center - first_tof_half_width,
+                        first_tof_center + first_tof_half_width)
+
     multiplicities = np.zeros((8, 3), dtype=np.int64)
     end_differences = [[] for _ in range(8)]
     tofs = {"T2-T0": [], "T0-T5": [], "T0-HD0": [], "T0-HD5": [], "T0-HD8": []}
@@ -507,6 +574,99 @@ def run(args):
             multiplicities[bar, int(left_ok) + int(right_ok)] += 1
             if left_ok and right_ok:
                 end_differences[bar].append(row["times"][left] - row["times"][right])
+
+    hd_charge_progression = {"available": bool(has_qdc), "plot": None,
+                             "qdc_to_tdc_channel_mapping": "provisional identity mapping, per user direction"}
+    if has_qdc:
+        quality_indices = np.asarray([row["entry"] - start for row in rows], dtype=int)
+        t0_indices = np.asarray([row["entry"] - start for row in rows
+                                 if in_gate(t0_label, row["t0"])], dtype=int)
+        t0_tof_indices = np.asarray([row["entry"] - start for row in rows
+                                     if row["t2"] is not None and in_gate(t0_label, row["t0"])
+                                     and np.isfinite(first_tof_center)
+                                     and first_tof_bounds[0] <= row["t2"] - row["t0"]
+                                     <= first_tof_bounds[1]], dtype=int)
+        stage_indices = {
+            "Raw": np.arange(stop - start, dtype=int),
+            "Beamline quality": quality_indices,
+            "Prompt T0": t0_indices,
+            "Prompt T0 + first T2-T0 peak": t0_tof_indices,
+        }
+        stage_colors = {"Raw": "0.4", "Beamline quality": "tab:blue",
+                        "Prompt T0": "tab:orange", "Prompt T0 + first T2-T0 peak": "tab:green"}
+        stage_legend_labels = {"Raw": "Raw", "Beamline quality": "Beamline quality",
+                               "Prompt T0": "Prompt T0",
+                               "Prompt T0 + first T2-T0 peak": "T0 + first TOF peak"}
+        fig, axes = plt.subplots(3, 5, figsize=(17, 10), sharey=False)
+        charge_counts = {}
+        legend_handles = {}
+        for element, axis in enumerate(axes.flat):
+            tdc_channel = next(ch for ch, hd_element in HD_CHANNELS.items()
+                               if hd_element == element)
+            by_stage = {
+                stage: qdc_charge_matrix[indices, element][
+                    np.isfinite(qdc_charge_matrix[indices, element])].astype(float)
+                for stage, indices in stage_indices.items()
+            }
+            all_values = by_stage["Raw"]
+            charge_counts[str(element)] = {stage: int(len(values))
+                                           for stage, values in by_stage.items()}
+            if not len(all_values):
+                axis.text(0.5, 0.5, "no QDC entries", ha="center", va="center",
+                          transform=axis.transAxes)
+                axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})")
+                continue
+            low, high = np.percentile(all_values, [0.5, 99.5])
+            if high <= low:
+                low, high = low - 0.5, high + 0.5
+            edges = np.linspace(low, high, 81)
+            for stage, values in by_stage.items():
+                if len(values):
+                    _, _, artists = axis.hist(values, bins=edges, histtype="step", linewidth=1.2,
+                                              color=stage_colors[stage],
+                                              label=stage_legend_labels[stage])
+                    if artists:
+                        legend_handles.setdefault(stage, artists[0])
+            axis.set_yscale("log")
+            axis.set_ylim(bottom=0.5)
+            counts_label = "/".join(f"{len(by_stage[stage]):,}" for stage in stage_indices)
+            axis.set_title(f"HD{element} (QDC/TDC ch {tdc_channel})\n"
+                           f"entries raw/quality/T0/T0+TOF: {counts_label}", fontsize=8)
+            axis.set_xlabel("QDC charge (input units)", fontsize=8)
+            axis.set_ylabel("Readouts / bin", fontsize=8)
+            axis.tick_params(labelsize=8)
+        if legend_handles:
+            fig.legend(list(legend_handles.values()), list(legend_handles),
+                       loc="upper center", ncol=4, fontsize=8,
+                       bbox_to_anchor=(0.5, 0.995))
+        fig.suptitle("HD charge distributions through cumulative prompt-selection stages\n"
+                     f"Final stage: T0 prompt + first T2−T0 peak ({first_tof_center:.2f} ± "
+                     f"{first_tof_half_width:.2f} ns); provisional QDC/TDC channel match; no charge cut",
+                     y=1.04)
+        fig.tight_layout(rect=(0, 0, 1, 0.91))
+        save_data(fig, args.output_dir / "beamline_hd_charge_cut_progression.png", run_number)
+        hd_charge_progression.update({"plot": "beamline_hd_charge_cut_progression.png",
+                                      "counts_by_element_and_stage": charge_counts,
+                                      "stages": ["Raw", "Beamline quality", "Prompt T0",
+                                                 "Prompt T0 + first T2-T0 peak"],
+                                      "stage_definitions": {
+                                          "Beamline quality": "both reference channels present and digitiser issue flag clear, when available",
+                                          "Prompt T0": "beamline-quality readouts within the fixed T0 prompt gate",
+                                          "Prompt T0 + first T2-T0 peak": "within the fixed T0 prompt gate and a configurable window around the earliest significant T2-T0 peak; no independent T2 gate",
+                                      },
+                                      "first_t2_t0_peak": {
+                                          "center_ns": (float(first_tof_center)
+                                                        if np.isfinite(first_tof_center) else None),
+                                          "half_width_ns": float(first_tof_half_width),
+                                          "window_ns": (list(map(float, first_tof_bounds))
+                                                        if np.isfinite(first_tof_center) else None),
+                                          "entries_considered_after_t0_gate": int(first_tof_entries),
+                                          "peak_bin_count": int(first_tof_peak_bin_count),
+                                          "histogram_bin_ns": float(tof_peak_bin_ns),
+                                          "minimum_peak_fraction": float(tof_first_peak_min_fraction),
+                                      }})
+    else:
+        hd_charge_progression["note"] = "QDC branches are absent; no HD charge plots were produced."
     tofs["T0-T5"] = [x for values in t5_bar_tofs for x in values]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
@@ -599,11 +759,24 @@ def run(args):
                 if vals:
                     axis.hist(gated_values, bins=common_edges, histtype="step", color="tab:blue",
                               label=f"both prompt gates (n={len(vals):,})")
+                if t0_prompt_tof_values:
+                    axis.hist(t0_prompt_tof_values, bins=common_edges, histtype="step",
+                              color="tab:green", label=f"T0 prompt only (n={len(t0_prompt_tof_values):,})")
+                if np.isfinite(first_tof_center):
+                    axis.axvspan(first_tof_bounds[0], first_tof_bounds[1], color="tab:green",
+                                 alpha=0.16,
+                                 label=f"first-peak gate: {first_tof_center:.2f} ± {first_tof_half_width:.2f} ns")
+                    axis.axvline(first_tof_center, color="tab:green", linestyle="--", linewidth=1)
                 axis.set_xlim(*zoom_limits)
                 t2_t0_zoom_summary = {
                     "display_range_ns": list(zoom_limits),
                     "all_pairs_total": len(all_values), "all_pairs_in_view": all_in_view,
                     "gated_pairs_total": len(gated_values), "gated_pairs_in_view": gated_in_view,
+                    "t0_prompt_pairs_total": len(t0_prompt_tof_values),
+                    "first_peak_center_ns": (float(first_tof_center)
+                                              if np.isfinite(first_tof_center) else None),
+                    "first_peak_window_ns": (list(map(float, first_tof_bounds))
+                                             if np.isfinite(first_tof_center) else None),
                     "quantile_range_percent": [0.5, 99.5],
                 }
                 axis.legend(fontsize=8)
@@ -689,6 +862,7 @@ def run(args):
                    for ch, values in t0_residuals_after_equalization.items()},
                "t5_end_multiplicity": multiplicities.tolist(),
                "t5_beam_profile_proxy": t5_beamspot_summary,
+               "hd_charge_cut_progression": hd_charge_progression,
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates. The absolute four-channel average retains event-to-event common-mode timing spread; the per-channel residual plot subtracts the same-event median and therefore does not show that common-mode spread."}
     summary["reference_subtraction_diagnostic"] = {
@@ -704,6 +878,11 @@ def run(args):
     (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"Processed {stop-start:,} readouts; {len(rows):,} passed beamline reference/digitiser quality")
     print(f"Prompt gates: ±{args.prompt_half_width_ns:g} ns around fixed main-peak centers")
+    if np.isfinite(first_tof_center):
+        print(f"First significant T2-T0 peak: {first_tof_center:.2f} ns; "
+              f"final charge-stage TOF gate ±{first_tof_half_width:g} ns")
+    else:
+        print("No significant T2-T0 peak found after the T0 prompt gate")
     print("TOF counts: " + ", ".join(f"{name}={len(values):,}" for name, values in tofs.items()))
     print(f"Results: {args.output_dir}")
     return summary
@@ -724,6 +903,12 @@ def parser():
                         help="Half-range for the zoomed T0 channel-residual comparison plot")
     result.add_argument("--prompt-half-width-ns", type=float, default=40.0)
     result.add_argument("--peak-bin-ns", type=float, default=2.0)
+    result.add_argument("--tof-first-peak-half-width-ns", type=float, default=0.5,
+                        help="Half-width of the final T2-T0 gate around its earliest significant peak")
+    result.add_argument("--tof-peak-bin-ns", type=float, default=0.2,
+                        help="Histogram bin width used to locate the first significant T2-T0 peak")
+    result.add_argument("--tof-first-peak-min-fraction", type=float, default=0.10,
+                        help="Minimum smoothed peak height as a fraction of the tallest TOF peak")
     result.add_argument("--end-diff-range-ns", type=float, default=5.0,
                         help="Half-range for the T5 left-right end-time-difference plot")
     return result
