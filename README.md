@@ -309,6 +309,38 @@ T0−HD differences still include the difference between reference clocks and
 are not calibrated physical TOFs. The script also writes `prompt_tof_values.csv`,
 `t5_prompt_multiplicity.csv`, and `summary.json` with gate centers and counts.
 
+When WCTE PMT charge and `T5_HasInTimeWindow` are present, it also writes four
+pages (`beamline_wcte_charge_cut_progression_hd_*.png`) of WCTE event-total
+charge distributions, one panel per HD TDC tag, through the cumulative stages:
+HD TDC hit, T0 prompt, no HC2 TDC hit, first T2−T0 peak, and no T5 prompt-window
+hit. The charge is summed over finite PMT hits with `hit_pmt_readout_mask == 0`;
+no event-level WCTE quality cut is made. If the T5 flag is absent, the plot and
+summary clearly stop at TOF. Readout and valid-charge counts by HD/stage are in
+`summary.json` under `wcte_charge_cut_progression_by_hd_tdc`.
+
+#### Submit the prompt study for the commissioning run list
+
+After the updated code is pushed to GitHub and pulled into the repository
+checkout on EOS, prepare one job per run. The helper uses the commissioning run
+list already used by the NPZ batch helper, checks for missing inputs and
+existing output folders, and writes one output directory per run:
+
+```bash
+python3 scripts/prepare_wcte_beamline_prompt_batch.py
+wc -l outputs/wcte_beamline_prompt_batch/jobs.txt
+module load lxbatch/eossubmit
+condor_submit outputs/wcte_beamline_prompt_batch/study_wcte_beamline_prompt.sub
+```
+
+The default output folders are under
+`outputs/wcte_beamline_prompt_by_hd_tdc/R<run>/`. Each job requests 32 GB and
+up to 72 hours, and processes the full ROOT tree (the max-events setting is an
+upper bound). The worker loads the LCG SWAN view and writes a completion marker
+only after the study finishes. Inspect the generated `jobs.txt` before
+submission; missing input files are reported and omitted. Check job output and
+error logs in `outputs/wcte_beamline_prompt_batch/logs/`. Existing partial
+output folders are not overwritten; inspect those folders before trying again.
+
 For a full run, omit --max-events. The script writes files such as
 R1827_part00000.npz, with 5000 quality-selected windows per file by default.
 Use --events-per-file to change that limit. The output contains
