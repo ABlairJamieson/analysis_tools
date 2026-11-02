@@ -35,6 +35,8 @@ def prepare(base_dir: Path, repo_dir: Path, output_root: Path,
     study = repo / "scripts" / "study_wcte_beamline_prompt.py"
     if not worker.is_file():
         raise FileNotFoundError(worker)
+    if not worker.stat().st_mode & 0o111:
+        raise PermissionError(f"Worker must be executable on EOS; run: chmod u+x {worker}")
     if not study.is_file():
         raise FileNotFoundError(study)
 
@@ -71,8 +73,8 @@ def prepare(base_dir: Path, repo_dir: Path, output_root: Path,
         "\n".join((
             "universe = vanilla",
             f"initialdir = {repo}",
-            "executable = /bin/bash",
-            f"arguments = {worker} $(run) $(input_root) $(output_dir) {repo} {max_events}",
+            f"executable = {worker}",
+            f"arguments = $(run) $(input_root) $(output_dir) {repo} {max_events}",
             "should_transfer_files = NO",
             f"request_memory = {memory_gb} GB",
             "request_cpus = 1",

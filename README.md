@@ -326,6 +326,7 @@ list already used by the NPZ batch helper, checks for missing inputs and
 existing output folders, and writes one output directory per run:
 
 ```bash
+chmod u+x scripts/run_wcte_beamline_prompt_one.sh
 python3 scripts/prepare_wcte_beamline_prompt_batch.py
 wc -l outputs/wcte_beamline_prompt_batch/jobs.txt
 module load lxbatch/eossubmit
