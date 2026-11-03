@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Prepare one EOS-backed HTCondor job per WCTE beamline prompt-study run."""
+"""Prepare an EOS-backed HTCondor batch for the beamline prompt ROOT study.
+
+The helper only prepares submission files; it never calls ``condor_submit``.
+It checks input files, skips complete outputs, and refuses to overwrite a
+nonempty incomplete output folder. Review the generated ``jobs.txt`` and submit
+file before submitting the job set.
+"""
 from __future__ import annotations
 
 import argparse
@@ -25,6 +31,11 @@ def eos_path(path: Path) -> str:
 def prepare(base_dir: Path, repo_dir: Path, output_root: Path,
             submission_dir: Path, runs: tuple[int, ...],
             memory_gb: int, max_runtime_hours: int, max_events: int):
+    """Create one queue row per runnable run and an EOSSubmit-compatible file.
+
+    All paths used by EosSubmit must be EOS paths. ``max_events`` is an upper
+    bound; each worker stops earlier if its ROOT tree is shorter.
+    """
     if memory_gb < 1 or max_runtime_hours < 1 or max_events < 1:
         raise ValueError("Memory, runtime, and max-events must be positive")
     repo = Path(eos_path(repo_dir))

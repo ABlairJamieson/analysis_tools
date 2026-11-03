@@ -1,4 +1,6 @@
 #!/bin/bash
+# One-run worker used by prepare_wcte_beamline_prompt_batch.py.
+# Arguments: run number, ROOT input, EOS output directory, EOS repo, event limit.
 set -euo pipefail
 
 if [[ $# -ne 5 ]]; then
@@ -12,6 +14,7 @@ output_dir=$3
 repo_dir=$4
 max_events=$5
 
+# EosSubmit schedds require every executable/input/output/log path on EOS.
 for path in "$input_root" "$output_dir" "$repo_dir"; do
     if [[ "$path" != /eos/* ]]; then
         echo "Input, output, and repository must be on /eos: $path" >&2
@@ -22,6 +25,7 @@ if [[ ! -f "$input_root" ]]; then
     echo "Missing input ROOT file: $input_root" >&2
     exit 1
 fi
+# Avoid replacing successful results or writing into a previous partial run.
 if [[ -f "$output_dir/summary.json" || -f "$output_dir/.beamline_prompt.done" ]]; then
     echo "Already complete: run $run"
     exit 0
@@ -36,6 +40,8 @@ if ! mkdir "$output_dir/.beamline_prompt_in_progress" 2>/dev/null; then
     exit 1
 fi
 
+# Load the same analysis stack used in SWAN, then run from the EOS checkout so
+# local imports (including scripts/beamline_timing.py) resolve consistently.
 set +u
 source /cvmfs/sft.cern.ch/lcg/views/LCG_110_swan/x86_64-el9-gcc13-opt/setup.sh
 set -u

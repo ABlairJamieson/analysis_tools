@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
-"""Histogram time gaps between PMT hit bursts over many WCTE ROOT windows.
+"""Study dense PMT-hit bursts and their time gaps in WCTE ROOT readouts.
 
-This is an exploratory within-window timing study, not a particle or Michel tag.
-The beamline TDC is used only for window selection and a T0-multiplicity split;
-no offset between its clock and the WCTE PMT clock is assumed.
+Analysis outline
+----------------
+* ``find_bursts`` bins PMT times, smooths over a configurable time width, and
+  keeps separated local maxima that pass both a hit and distinct-PMT threshold.
+* ``run`` applies optional beamline readout selection, then writes one row per
+  burst/gap/hit to CSV plus aggregate histograms and ``summary.json``.
+* The later-T0/HD match is exploratory only. Its residuals do not define a
+  validated veto, and matching beamline times to PMT times is not a calibrated
+  cross-clock operation.
+
+PMT burst times stay on the WCTE readout-window clock. Beamline TDC references
+31/46 are subtracted only within their respective TDC banks. Do not compare
+absolute values between these clocks without an independently validated offset.
+The NPZ companion ``study_wcte_npz_burst_gaps.py`` shares the burst-finding and
+plot helpers but reads provenance-preserving schema-v2 converter output.
 """
 
 from __future__ import annotations
@@ -37,6 +49,8 @@ T2_ID = 8
 HC2_ID = 11
 HD_IDS = {**{32 + i: i for i in range(7)}, 16: 7,
           **{17 + i: i + 8 for i in range(7)}}
+# Existing broad, element-dependent association windows for this diagnostic.
+# They are selection conventions, not calibrated flight-time predictions.
 HD_DT_WINDOWS = {hd: ((-50.0, 100.0) if hd in (0, 1, 2, 3, 8, 9, 10, 11)
                        else (80.0, 200.0)) for hd in range(15)}
 
@@ -67,7 +81,15 @@ class Burst:
 def find_bursts(times: np.ndarray, charges: np.ndarray, pmts: np.ndarray,
                 *, min_ns: float, max_ns: float, bin_ns: float, width_ns: float,
                 min_pmts: int, min_separation_ns: float, max_bursts: int) -> list[Burst]:
-    """Find dense 50-ns-scale windows, suppressing duplicate nearby maxima."""
+    """Return separated local hit-density maxima as ``Burst`` records.
+
+    ``bin_ns`` sets the time histogram resolution; ``width_ns`` is the
+    smoothing/search-window width. Candidate maxima closer than
+    ``min_separation_ns`` compete, with the higher-density maximum kept.
+    The final window must contain at least ``min_pmts`` distinct PMTs. This is
+    a time-density definition, not particle reconstruction or clustering by
+    detector geometry.
+    """
     if len(times) == 0:
         return []
     edges = np.arange(min_ns, max_ns + bin_ns, bin_ns)
@@ -95,7 +117,12 @@ def find_bursts(times: np.ndarray, charges: np.ndarray, pmts: np.ndarray,
 
 
 def t0_group_centers(t0_times: list[float], separation_ns: float = 50) -> list[float]:
-    """Robust center of each T0 time group; four PMTs do not mean four bunches."""
+    """Group nearby corrected T0 hits and return one median per group.
+
+    ``separation_ns`` splits groups only when adjacent hit times differ by
+    more than this value. Multiple T0 PMTs in one group therefore count as one
+    beam-time group rather than multiple beam bunches.
+    """
     if not t0_times:
         return []
     ordered = np.sort(t0_times)
@@ -105,6 +132,7 @@ def t0_group_centers(t0_times: list[float], separation_ns: float = 50) -> list[f
 
 def corrected_beamline_hits(event, *, tdc_time_mode: str = "reference"
                             ) -> tuple[list[tuple[int, float]], tuple[float | None, float | None]]:
+    """Return non-reference TDC hits after optional within-bank correction."""
     ids = ak.to_list(event["beamline_pmt_tdc_ids"])
     times = ak.to_list(event["beamline_pmt_tdc_times"])
     if len(ids) != len(times):
@@ -118,6 +146,13 @@ def corrected_beamline_hits(event, *, tdc_time_mode: str = "reference"
 
 
 def beamline_status(event, *, tdc_time_mode: str = "reference") -> tuple[bool, bool, list[float], tuple]:
+    """Return (beam-like, tagged, T0 group centers, reference times).
+
+    ``beam-like`` requires a T0 hit and T2 hit, with no HC2 hit. ``tagged``
+    additionally requires an HD hit inside that element's configured T0
+    timing window. These flags are this script's exploratory window selection,
+    not a validated particle ID.
+    """
     hits, refs = corrected_beamline_hits(event, tdc_time_mode=tdc_time_mode)
     channels = {cid for cid, _ in hits}
     t0 = [time for cid, time in hits if cid in T0_IDS]
@@ -168,7 +203,7 @@ def later_hodoscope_match_counts(event, t0_centers: list[float], *,
     for group_index, t0_time in enumerate(t0_centers[1:], start=1):
         for hit_index, (channel_id, hd_time) in enumerate(hits):
             hd = HD_IDS[channel_id]
-            lo, hi = (-50, 100) if hd in (0, 1, 2, 3, 8, 9, 10, 11) else (80, 200)
+            lo, hi = HD_DT_WINDOWS[hd]
             if lo < hd_time - t0_time < hi:
                 matched_hit_indices.add(hit_index)
                 matched_group_indices.add(group_index)
@@ -503,6 +538,14 @@ def make_diagnostic_veto_comparison(output_dir: Path, prompt_residuals: dict[int
 
 
 def run(args: argparse.Namespace) -> dict:
+    """Scan ROOT readouts, write detailed tables/plots, and return the summary.
+
+    Main stages: validate settings and branches; iterate over readouts; record
+    bursts and per-readout gaps; collect raw-hit and beamline diagnostics; then
+    create plots and ``summary.json``. CSV files preserve original ROOT entry
+    and event/readout identifiers so a student can revisit individual cases.
+    """
+    # 1) Normalize/validate analysis settings before allocating histograms.
     tdc_mode = getattr(args, "tdc_time_mode", "reference")
     prompt_min = getattr(args, "prompt_min_ns", 1500)
     prompt_max = getattr(args, "prompt_max_ns", 1900)
@@ -550,6 +593,9 @@ def run(args: argparse.Namespace) -> dict:
     raw_hit_count = raw_hit_out_of_time_range = 0
     raw_nonpositive_charge = raw_charge_overflow = 0
     alignment_candidates: list[float] = []
+    # 2) Read the ROOT tree in batches and stream each readout to CSV. The
+    #    output tables, rather than plot code, are the source for event-level
+    #    follow-up studies.
     with uproot.open(args.input_root) as root:
         tree = root["WCTEReadoutWindows"]
         missing = set(REQUIRED) - set(tree.keys())
@@ -807,6 +853,7 @@ def run(args: argparse.Namespace) -> dict:
                         gap_writer.writerow({**identity, "kind": "later_from_strongest",
                                              "from_burst": strongest, "to_burst": i, "gap_ns": gap})
                         histograms[("later_from_strongest", group)] += np.histogram([gap], bins=edges)[0]
+            # 3) Summarize counts and selection settings before closing CSVs.
             summary = {
                 "counts": dict(counts),
                 "burst_multiplicity_per_selected_window": {str(k): v for k, v in sorted(multiplicities.items())},

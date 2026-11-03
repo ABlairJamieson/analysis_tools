@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
-"""Run the ROOT burst-gap study on provenance-preserving converted WCTE NPZ.
+"""Run the ROOT burst-gap analysis on converted WCTE schema-v2 NPZ files.
 
-PMT times remain on the calibrated readout-window axis. Beamline TDC hits
-are corrected only within their own clock; no TDC-to-PMT offset is inferred.
+This is the converted-data counterpart to ``study_wcte_burst_gaps.py``. The
+conversion manifest is checked before reading any arrays, and original ROOT
+entry numbers are required so output CSV rows can be traced back to the ROOT
+readout. The burst-finding definition and beamline selection helpers are
+imported from the ROOT study to keep both routes consistent.
+
+PMT times stay on the calibrated readout-window axis. Beamline TDC hits are
+corrected only within their own clock banks; this script does not infer an
+offset between beamline and PMT clocks. See the README code map before changing
+selection or burst parameters in one route: compare the matching option in the
+ROOT parser as well.
 """
 
 from __future__ import annotations
@@ -68,6 +77,7 @@ def plot_hodoscope_times(path: Path, times_by_element: dict[int, list[float]],
 
 
 def conversion_parts(directory: Path) -> tuple[list[Path], dict]:
+    """Load/validate the single schema-v2 conversion manifest and NPZ parts."""
     manifests = list(directory.glob("*_conversion_manifest.json"))
     if len(manifests) != 1:
         raise ValueError(f"Expected exactly one conversion manifest in {directory}; found {len(manifests)}")
@@ -88,6 +98,12 @@ def conversion_parts(directory: Path) -> tuple[list[Path], dict]:
 
 
 def run(args: argparse.Namespace) -> dict:
+    """Analyze manifest-listed NPZ parts in ROOT-entry order and write outputs.
+
+    ``entry_start`` and ``entry_stop`` refer to original ROOT entry numbers,
+    not offsets within a part file. A duplicate or out-of-order ROOT entry is
+    treated as corrupt input rather than silently double-counted.
+    """
     if (args.entry_start < 0 or (args.entry_stop is not None and args.entry_stop <= args.entry_start)
             or args.max_ns <= args.min_ns or args.min_ns < 0 or args.bin_ns <= 0
             or args.width_ns <= 0 or args.min_pmts < 1 or args.min_separation_ns <= 0

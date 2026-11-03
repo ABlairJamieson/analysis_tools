@@ -1,12 +1,30 @@
 #!/usr/bin/env python3
-"""Prompt-gated beam-monitor timing and multiplicity diagnostics for WCTE ROOT data.
+"""Make exploratory beamline and WCTE charge plots from merged WCTE ROOT data.
 
-Beamline TDC channels are corrected using the first hit on reference channel 31
-for IDs <=31 and channel 46 for IDs >31. This is the production beam-monitor
-convention; it does not align the beamline clock to WCTE PMT time. A fixed
-per-detector prompt gate is found once from the main peak and then applied to
-all readouts. When available, WCTE charge is summarized per readout for each
-HD-TDC-tagged sample through cumulative beamline selection stages.
+How the script is organized
+---------------------------
+1. Read the beamline TDC/QDC branches and optional WCTE PMT branches.
+2. Keep readouts with both beamline reference channels and, when available,
+   a clear beamline digitiser-quality flag. Build one small Python record per
+   retained readout (see ``rows`` in :func:`run`).
+3. Find fixed prompt peaks from the retained sample, then calculate T0/T2/T5/HD
+   timing diagnostics and the T2-T0 positron-enriched first-peak window.
+4. Write plots and ``summary.json``. Optional charge plots are diagnostics;
+   they do not add an event-quality or WCTE-time cut to the original samples.
+
+Timing conventions and limitations
+-----------------------------------
+Beamline channels use the first hit on reference channel 31 for channel IDs
+<=31 and channel 46 for IDs >31. This corrects times within each beamline TDC
+bank; it does not align the beamline clock with the WCTE PMT clock. WCTE PMT
+times are handled separately. Their optional prompt gate is centered on the
+dominant accepted PMT-time peak, not on T0. Detector-to-detector differences
+are therefore timing diagnostics, not calibrated physical TOFs.
+
+The fixed prompt gates, ``first significant`` T2-T0 peak, and HD/T5 cuts are
+exploratory selections. Read the plot labels and ``summary.json`` before
+interpreting them as particle identification or applying them to physics data.
+See the README section “Reading and modifying the WCTE studies” for a code map.
 """
 
 from __future__ import annotations
@@ -15,6 +33,7 @@ import argparse
 import csv
 import json
 import re
+import time
 from pathlib import Path
 
 import awkward as ak
@@ -50,7 +69,11 @@ T5_PROMPT_BRANCH = "T5_HasInTimeWindow"
 
 
 def main_peak(values: list[float], *, bin_ns: float = 2.0) -> tuple[float, float, int]:
-    """Return modal-bin center, modal-bin count and number of finite entries."""
+    """Return the modal-bin center/count and number of finite input values.
+
+    The histogram range excludes the outer 0.1% tails at each end so an
+    isolated outlier does not set the bin width/range for a prompt peak.
+    """
     data = np.asarray(values, dtype=float)
     data = data[np.isfinite(data)]
     if not len(data):
@@ -70,6 +93,10 @@ def first_significant_peak(values: list[float], *, bin_ns: float = 0.2,
 
     A short moving average damps single-bin noise. The returned center is a
     data-driven gate anchor, not a particle identification by itself.
+    ``min_fraction`` is relative to the tallest smoothed peak. Among local
+    maxima passing that threshold, the earliest is returned. This is intended
+    to enrich the positron population relative to slower particles; it is not
+    by itself a particle-identification result.
     """
     data = np.asarray(values, dtype=float)
     data = data[np.isfinite(data)]
@@ -105,6 +132,13 @@ def robust_group_mean(channel_times: dict[int, float], channels: tuple[int, ...]
 
 def first_hits(event_ids, event_times) -> tuple[
         dict[int, float], dict[int, float], tuple[float | None, float | None]]:
+    """Correct beamline TDC hits and keep the first hit per detector channel.
+
+    The TDC reference correction itself lives in ``beamline_timing.py``. This
+    wrapper returns both raw and reference-corrected first-hit maps because
+    some plots compare the two. Repeated detector hits are intentionally not
+    used by the prompt-gate analysis.
+    """
     pairs = [(int(ch), float(t)) for ch, t in zip(ak.to_list(event_ids), ak.to_list(event_times))
              if t is not None and np.isfinite(float(t))]
     corrected, refs = correct_tdc_hits(pairs, mode="reference")
@@ -132,7 +166,12 @@ def plot_wcte_charge_diagnostics(rows: list[dict], prompt_center: float | None,
                                  prompt_half_width: float, low_charge_max: float,
                                  out: Path, run_number: int | str | None,
                                  has_times: bool) -> dict:
-    """Plot charge/multiplicity diagnostics; keep exact zero distinct from small charge."""
+    """Write follow-up plots and a row-level CSV for zero/low WCTE charge.
+
+    ``rows`` are the beamline-quality readouts from :func:`run`. This function
+    only visualizes all-time and independently prompt-gated PMT charge; it
+    does not remove readouts from any existing cut-flow sample.
+    """
     hd_rows = list({row["entry"]: row for row in rows if row["hd"]}.values())
     final_rows = [row for row in hd_rows if row.get("t0_prompt", False) and not row.get("hc2_hit", False)
                   and row.get("first_tof", False) and row.get("t5_veto_pass", True)]
@@ -302,7 +341,11 @@ def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, di
                             out: Path, run_number: int | str | None = None,
                             t0_label: str = "T0 four-PMT average",
                             t2_label: str = "T2"):
-    """Write separate, readable pages for T0/T2, T5 bars, and HD channels."""
+    """Write separate peak/gate pages for T0/T2, T5 bars, and HD channels.
+
+    Each fixed detector gate is calculated once in :func:`run` and passed in
+    ``gates``. T5 is shown per end/bar because cable and detector offsets differ.
+    """
     def draw(axis, label, values):
         data = np.asarray(values, dtype=float)
         data = data[np.isfinite(data)]
@@ -363,6 +406,14 @@ def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, di
 
 
 def run(args):
+    """Run the analysis and write figures, a CSV detail table, and summary JSON.
+
+    ``rows`` below is the hand-off between ROOT reading and plotting. Each
+    record represents one beamline-quality readout and contains raw/corrected
+    beamline times plus optional WCTE diagnostics. Keeping this intermediate
+    representation makes the selection logic inspectable without repeatedly
+    decoding ROOT branches in every plot block.
+    """
     args.output_dir.mkdir(parents=True, exist_ok=True)
     t0_channels = tuple(getattr(args, "t0_channels", T0_CHANNELS))
     t2_channels = tuple(getattr(args, "t2_channels", T2_CHANNELS))
@@ -378,6 +429,8 @@ def run(args):
         raise ValueError("TOF peak bin/half-width must be positive and minimum peak fraction in (0, 1]")
     if wcte_prompt_half_width <= 0 or wcte_prompt_bin <= 0 or wcte_low_charge_max <= 0:
         raise ValueError("WCTE prompt half-width, peak bin, and low-charge threshold must be positive")
+    # 1) Read only branches this study uses. Optional branches add diagnostics;
+    #    only REQUIRED beamline TDC fields are necessary to run the core study.
     with uproot.open(args.input_root) as root:
         tree = root[args.tree]
         missing = set(REQUIRED) - set(tree.keys())
@@ -399,8 +452,13 @@ def run(args):
                     if name in available]
         start = args.entry_start
         stop = min(tree.num_entries, start + args.max_events)
+        print(f"Reading ROOT entries {start:,}–{stop:,} from {args.input_root} "
+              f"({len(REQUIRED) + len(optional)} branches)...", flush=True)
+        read_started = time.perf_counter()
         arrays = tree.arrays([*REQUIRED, *optional], entry_start=start, entry_stop=stop,
                              library="ak")
+        print(f"Read {stop - start:,} entries in {time.perf_counter() - read_started:.1f} s. "
+              "Building beamline readout records...", flush=True)
         run_number = None
         if "run_id" in optional and stop > start:
             try:
@@ -411,11 +469,24 @@ def run(args):
             match = re.search(r"(?:^|[^A-Za-z])R?(\d{4,})(?:[^0-9]|$)", args.input_root.name)
             run_number = int(match.group(1)) if match else None
 
+    # 2) Convert each readout into a compact record. Reject bad beamline
+    #    references/digitiser windows here; WCTE PMT quality is NOT an event cut.
     rows = []
     qdc_charge_matrix = (np.full((stop - start, 15), np.nan, dtype=np.float32)
                          if has_qdc else None)
     reference_good = 0
     missing_reference = {"31": 0, "46": 0}
+    process_started = time.perf_counter()
+
+    def report_progress(processed: int) -> None:
+        """Print a compact status line at the configured readout interval."""
+        if processed % args.progress_every == 0 or processed == stop - start:
+            elapsed = time.perf_counter() - process_started
+            rate = processed / elapsed if elapsed else 0.0
+            print(f"Processed {processed:,}/{stop - start:,} readouts; "
+                  f"{len(rows):,} passed beamline quality ({rate:,.0f} readouts/s)",
+                  flush=True)
+
     for i in range(stop - start):
         if has_qdc:
             qdc_ids = ak.to_list(arrays[QDC_BRANCHES[0]][i])
@@ -447,6 +518,7 @@ def run(args):
             digi_good = int(arrays["vme_digi_issues_bitmask"][i]) == 0
         quality_good = refs_good and digi_good
         if not quality_good:
+            report_progress(i + 1)
             continue
         t0 = robust_group_mean(times, t0_channels)
         t0_raw = robust_group_mean(raw_times, t0_channels)
@@ -491,9 +563,12 @@ def run(args):
                      "wcte_total_hits": total_hits, "wcte_event_quality": event_quality,
                      "event_number": event_number, "readout_number": readout_number,
                      "t5_in_time_window": t5_in_time_window})
+        report_progress(i + 1)
 
-    # WCTE PMT time is its own clock. Find its dominant hit-time peak from
+    # 3) WCTE PMT time is its own clock. Find its dominant hit-time peak from
     # beamline-quality readouts, then count accepted hits/charge in a fixed gate.
+    print("Building prompt peaks and diagnostic plots; large WCTE hit arrays may take a while...",
+          flush=True)
     wcte_prompt_peak_count = 0
     if has_wcte_charge and has_wcte_times:
         time_edges = np.arange(-1000.0, 12000.0 + wcte_prompt_bin, wcte_prompt_bin)
@@ -558,7 +633,7 @@ def run(args):
         fig.tight_layout()
         save_data(fig, args.output_dir / "beamline_wcte_pmt_time_prompt_gate.png", run_number)
 
-    # Determine every fixed peak once from beamline-quality readouts. T5 gates
+    # 4) Determine every fixed beamline prompt peak once from retained rows. T5 gates
     # are per bar because cable/geometry offsets can differ between bars.
     t0_residuals = {ch: [] for ch in t0_channels}
     for row in rows:
@@ -609,6 +684,8 @@ def run(args):
     plot_peak_distributions(samples, gates, args.output_dir / "beamline_prompt_peaks.png",
                             run_number, t0_label, t2_label)
 
+    # 5) T0 correction checks. The run-derived channel equalization below is
+    #    for comparison only; selection gates continue to use reference-only times.
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     baseline = np.asarray(t0_comparison["reference_only"], dtype=float)
     equalized = np.asarray(t0_comparison["reference_plus_data_derived_relative_offsets"], dtype=float)
@@ -656,6 +733,9 @@ def run(args):
     fig.tight_layout()
     save_data(fig, args.output_dir / "t0_channel_residuals_before_after_equalization.png", run_number)
 
+    # 6) Reference subtraction diagnostics: show every raw T0 channel against
+    #    raw reference 31, then verify the corrected values against direct
+    #    single subtraction. These plots cannot establish upstream processing.
     # Show every T0 channel against the raw channel-31 reference separately.
     raw_t0_by_channel = {}
     corrected_t0_by_channel = {}
@@ -761,7 +841,8 @@ def run(args):
     fig.suptitle("Raw T0 channel time versus raw channel-31 reference (central 99% view)")
     save_data(fig, args.output_dir / "t0_channels_vs_reference_2d.png", run_number)
 
-    # T0 channel geometry: 0/1 are the upper pair and 2/3 the lower pair;
+    # 7) T0 timing-asymmetry proxies. T0 channel geometry: 0/1 are the upper
+    #    pair and 2/3 the lower pair;
     # 0/2 are left and 1/3 right. The common channel-31 subtraction cancels
     # algebraically in both contrasts. Keep channel offsets unadjusted so the
     # observed centroid is retained, but label the axes as uncalibrated.
@@ -812,6 +893,8 @@ def run(args):
         center = gates[label]["center_ns"]
         return value is not None and np.isfinite(center) and abs(value - center) <= args.prompt_half_width_ns
 
+    # 8) Build the first significant T2-T0 peak window, then use it for the
+    #    beamline TOF and cumulative HD-charge diagnostic samples.
     t0_prompt_tof_values = [row["t2"] - row["t0"] for row in rows
                             if row["t2"] is not None and in_gate(t0_label, row["t0"])]
     first_tof_center, first_tof_peak_bin_count, first_tof_entries = first_significant_peak(
@@ -861,6 +944,8 @@ def run(args):
             if left_ok and right_ok:
                 end_differences[bar].append(row["times"][left] - row["times"][right])
 
+    # 9) HD QDC charge cut-flow. This is plotted as a diagnostic progression;
+    #    no QDC charge threshold is imposed by this script.
     hd_charge_progression = {"available": bool(has_qdc), "plot": None,
                              "qdc_to_tdc_channel_mapping": "provisional identity mapping, per user direction"}
     if has_qdc:
@@ -970,6 +1055,9 @@ def run(args):
     else:
         hd_charge_progression["note"] = "QDC branches are absent; no HD charge plots were produced."
 
+    # 10) WCTE event charge through the same beamline selection stages, plus
+    #     independent PMT-time/quality-mask checks. The PMT prompt gate uses
+    #     WCTE times only and is deliberately not applied to the legacy plots.
     wcte_charge_progression = {
         "available": bool(has_wcte_charge),
         "plots": [],
@@ -1112,6 +1200,7 @@ def run(args):
             "hit_pmt_charges and/or hit_pmt_readout_mask branches are absent; no WCTE charge plots were produced.")
         low_diag = {"available": False, "note": wcte_charge_progression["note"]}
 
+    # 11) Final compact T5 multiplicity/profile plots and paginated TOF figures.
     tofs["T0-T5"] = [x for values in t5_bar_tofs for x in values]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
@@ -1274,6 +1363,8 @@ def run(args):
         for bar in range(8):
             for multiplicity in range(3):
                 writer.writerow([bar, multiplicity, int(multiplicities[bar, multiplicity])])
+    # 12) Machine-readable provenance and counts; update this summary whenever
+    #     adding/changing a selection or output plot.
     summary = {"input": str(args.input_root), "tree": args.tree,
                "run_number": run_number,
                "processed_entries": stop - start, "beamline_quality_readouts": len(rows),
@@ -1337,37 +1428,50 @@ def run(args):
 
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("input_root", type=Path)
-    result.add_argument("--tree", default="WCTEReadoutWindows")
-    result.add_argument("--output-dir", type=Path, required=True)
-    result.add_argument("--entry-start", type=int, default=0)
-    result.add_argument("--max-events", type=int, default=1_000_000)
-    result.add_argument("--t0-channels", type=int, nargs=4, default=T0_CHANNELS,
-                        help="Four T0 TDC channels used for the event average")
-    result.add_argument("--t2-channels", type=int, nargs="+", default=T2_CHANNELS,
-                        help="T2 TDC channel(s) to average (default: channel 8)")
-    result.add_argument("--t0-residual-range-ns", type=float, default=5.0,
-                        help="Half-range for the zoomed T0 channel-residual comparison plot")
-    result.add_argument("--prompt-half-width-ns", type=float, default=40.0)
-    result.add_argument("--peak-bin-ns", type=float, default=2.0)
-    result.add_argument("--tof-first-peak-half-width-ns", type=float, default=0.5,
-                        help="Half-width of the final T2-T0 gate around its earliest significant peak")
-    result.add_argument("--tof-peak-bin-ns", type=float, default=0.2,
-                        help="Histogram bin width used to locate the first significant T2-T0 peak")
-    result.add_argument("--tof-first-peak-min-fraction", type=float, default=0.10,
-                        help="Minimum smoothed peak height as a fraction of the tallest TOF peak")
-    result.add_argument("--end-diff-range-ns", type=float, default=5.0,
-                        help="Half-range for the T5 left-right end-time-difference plot")
-    result.add_argument("--wcte-prompt-half-width-ns", type=float, default=40.0,
-                        help="WCTE PMT-time prompt gate half-width around its dominant hit-time peak")
-    result.add_argument("--wcte-prompt-center-ns", type=float, default=None,
-                        help="Override the WCTE PMT-time prompt center (does not use beamline clock)")
-    result.add_argument("--wcte-prompt-peak-bin-ns", type=float, default=2.0,
-                        help="Bin width for locating the dominant WCTE PMT hit-time peak")
-    result.add_argument("--wcte-low-charge-max", type=float, default=20000.0,
-                        help="Upper edge for low-charge diagnostic views, in input charge units")
+    io = result.add_argument_group("Input and output")
+    io.add_argument("input_root", type=Path, help="Merged production ROOT file")
+    io.add_argument("--tree", default="WCTEReadoutWindows", help="ROOT tree to analyze")
+    io.add_argument("--output-dir", type=Path, required=True, help="Directory for plots, CSV, and summary")
+    io.add_argument("--entry-start", type=int, default=0, help="First ROOT entry to read (inclusive)")
+    io.add_argument("--max-events", type=int, default=1_000_000,
+                    help="Maximum ROOT entries to read; use a larger value for a full run")
+    io.add_argument("--progress-every", type=int, default=50000,
+                    help="Print progress after this many readouts (default: 50000)")
+
+    beamline = result.add_argument_group("Beamline gates and plots")
+    beamline.add_argument("--t0-channels", type=int, nargs=4, default=T0_CHANNELS,
+                          help="Four T0 TDC channels used for the event average")
+    beamline.add_argument("--t2-channels", type=int, nargs="+", default=T2_CHANNELS,
+                          help="T2 TDC channel(s) to average (default: channel 8)")
+    beamline.add_argument("--t0-residual-range-ns", type=float, default=5.0,
+                          help="Half-range for the zoomed T0 channel-residual plot")
+    beamline.add_argument("--prompt-half-width-ns", type=float, default=40.0,
+                          help="Half-width of each beamline detector's fixed prompt gate")
+    beamline.add_argument("--peak-bin-ns", type=float, default=2.0,
+                          help="Bin width for locating fixed beamline prompt peaks")
+    beamline.add_argument("--tof-first-peak-half-width-ns", type=float, default=0.5,
+                          help="Half-width of the T2-T0 gate around its earliest significant peak")
+    beamline.add_argument("--tof-peak-bin-ns", type=float, default=0.2,
+                          help="Histogram bin width used to locate the first significant T2-T0 peak")
+    beamline.add_argument("--tof-first-peak-min-fraction", type=float, default=0.10,
+                          help="Minimum smoothed peak height relative to the tallest TOF peak")
+    beamline.add_argument("--end-diff-range-ns", type=float, default=5.0,
+                          help="Half-range for the T5 left-right end-time-difference plot")
+
+    wcte = result.add_argument_group("WCTE PMT charge diagnostics")
+    wcte.add_argument("--wcte-prompt-half-width-ns", type=float, default=40.0,
+                      help="WCTE-time gate half-width around its dominant PMT hit-time peak")
+    wcte.add_argument("--wcte-prompt-center-ns", type=float, default=None,
+                      help="Override WCTE prompt center (independent of beamline clock)")
+    wcte.add_argument("--wcte-prompt-peak-bin-ns", type=float, default=2.0,
+                      help="Bin width for locating the dominant WCTE PMT hit-time peak")
+    wcte.add_argument("--wcte-low-charge-max", type=float, default=20000.0,
+                      help="Upper edge for low-charge diagnostic views, in input charge units")
     return result
 
 
 if __name__ == "__main__":
-    run(parser().parse_args())
+    arguments = parser().parse_args()
+    if arguments.progress_every < 1:
+        parser().error("--progress-every must be at least 1")
+    run(arguments)

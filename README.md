@@ -335,6 +335,49 @@ HD-tagged zero/low-charge readouts for follow-up. These are diagnostics only;
 neither the event-level WCTE quality mask nor this prompt gate is applied as a
 cut to the existing charge-progression plots.
 
+#### Reading and modifying the WCTE studies
+
+These are exploratory analysis scripts. A useful way for a new student to
+approach them is to trace one event from an input branch to its CSV row, then
+check that the corresponding count appears in `summary.json` before changing
+selection code.
+
+| File | Responsibility | Start reading here |
+| --- | --- | --- |
+| `scripts/study_wcte_beamline_prompt.py` | Prompt-gated T0/T2/T5/HD timing, QDC charge progression, and optional WCTE charge diagnostics from ROOT | Module docstring, constants at the top, then numbered sections in `run()` |
+| `scripts/beamline_timing.py` | Shared beamline reference-channel subtraction | `correct_tdc_hits()` |
+| `scripts/study_wcte_burst_gaps.py` | Dense PMT burst finding, within-window gap tables, and ROOT diagnostics | `find_bursts()` for the candidate definition; `run()` for input/output flow |
+| `scripts/study_wcte_npz_burst_gaps.py` | Same burst analysis on converted, provenance-preserving NPZ | `conversion_parts()` for input validation; `run()` for the analysis loop |
+| `scripts/prepare_wcte_beamline_prompt_batch.py` | Prepares per-run EOS/Condor jobs; does not submit them | `prepare()` |
+| `scripts/run_wcte_beamline_prompt_one.sh` | One-run worker invoked by the prepared Condor job | Argument check, EOS checks, then environment setup and Python call |
+
+Common edits:
+
+- Detector/channel assignments and ROOT branch names are constants near the
+  top of the relevant analysis file. Confirm channel mapping against the
+  production configuration before changing it.
+- Prompt widths, histogram ranges, and burst-finder thresholds are command-line
+  options near each file's `parser()`/`main()`. The summary records the values
+  used for each run.
+- Event selection is in the `run()` loop. In the prompt study, `rows` contains
+  readouts passing the beamline reference/digitiser checks. Later plot blocks
+  build progressively smaller samples from those rows; stage labels and
+  definitions are recorded in `summary.json`.
+- Plot appearance belongs in the `plot_*` functions or clearly marked plot
+  sections. Keep plot-only zooms separate from values used for cuts.
+- Add or adjust a small synthetic fixture in `tests/` when changing branch
+  handling or selection logic; then run the relevant test file and
+  `python -m py_compile scripts/<name>.py`.
+
+Interpretation cautions: reference channels 31 and 46 correct separate
+beamline TDC banks, not the beamline-to-WCTE clock offset. Main prompt gates
+are data-derived once per run. The first significant T2−T0 peak is a
+positron-enriched timing window, not particle identification. The QDC-to-HD
+channel match is provisional. WCTE event-quality and prompt-time diagnostics
+are reported separately and do not silently become cuts in the existing
+all-time charge progression. Check plot titles and the summary notes whenever
+adding a selection.
+
 #### Submit the prompt study for the commissioning run list
 
 After the updated code is pushed to GitHub and pulled into the repository
