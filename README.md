@@ -318,6 +318,23 @@ no event-level WCTE quality cut is made. If the T5 flag is absent, the plot and
 summary clearly stop at TOF. Readout and valid-charge counts by HD/stage are in
 `summary.json` under `wcte_charge_cut_progression_by_hd_tdc`.
 
+The study also writes a separate low-charge investigation without changing
+those all-time charge selections. `beamline_wcte_pmt_time_prompt_gate.png`
+shows the accepted WCTE PMT hit-time spectrum and the default ±40 ns gate
+around its dominant peak (WCTE time is treated on its own clock). The
+`beamline_wcte_charge_low_investigation.png` and
+`beamline_wcte_all_time_vs_prompt_charge.png` plots compare all-time and
+prompt-window charge and PMT-hit multiplicity; exact-zero charge is counted
+separately from positive low charge. `beamline_wcte_charge_quality_mask_checks.png`
+compares charge classes with the event-level WCTE quality mask and accepted vs
+masked PMT-hit counts. The prompt gate can be adjusted with
+`--wcte-prompt-half-width-ns`, its center overridden with
+`--wcte-prompt-center-ns`, and the low-charge zoom changed with
+`--wcte-low-charge-max`. `wcte_low_charge_event_diagnostics.csv` lists
+HD-tagged zero/low-charge readouts for follow-up. These are diagnostics only;
+neither the event-level WCTE quality mask nor this prompt gate is applied as a
+cut to the existing charge-progression plots.
+
 #### Submit the prompt study for the commissioning run list
 
 After the updated code is pushed to GitHub and pulled into the repository

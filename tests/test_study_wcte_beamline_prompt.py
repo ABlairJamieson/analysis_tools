@@ -38,6 +38,10 @@ def test_prompt_gated_beamline_outputs(tmp_path):
             "beamline_pmt_qdc_charges": "var * float64",
             "hit_pmt_charges": "var * float64",
             "hit_pmt_readout_mask": "var * int32",
+            "hit_pmt_calibrated_times": "var * float64",
+            "window_data_quality_mask": "int32",
+            "event_number": "int64",
+            "readout_number": "int32",
             "T5_HasInTimeWindow": "bool",
             "vme_digi_issues_bitmask": "int32",
         })
@@ -46,8 +50,12 @@ def test_prompt_gated_beamline_outputs(tmp_path):
             "beamline_pmt_tdc_times": ak.Array([raw_times, raw_times, raw_times]),
             "beamline_pmt_qdc_ids": ak.Array([[32, 37, 17]] * 3),
             "beamline_pmt_qdc_charges": ak.Array([[100.0, 200.0, 300.0]] * 3),
-            "hit_pmt_charges": ak.Array([[100.0, 200.0]] * 3),
+            "hit_pmt_charges": ak.Array([[0.0, 200.0], [100.0, 200.0], [100.0, 200.0]]),
             "hit_pmt_readout_mask": ak.Array([[0, 1]] * 3),
+            "hit_pmt_calibrated_times": ak.Array([[1900.0, 1901.0]] * 3),
+            "window_data_quality_mask": np.array([0, 1, 0], dtype=np.int32),
+            "event_number": np.array([10, 11, 12], dtype=np.int64),
+            "readout_number": np.array([100, 101, 102], dtype=np.int32),
             "T5_HasInTimeWindow": np.array([False, True, False], dtype=np.bool_),
             "vme_digi_issues_bitmask": np.array([0, 0, 0], dtype=np.int32),
         })
@@ -80,6 +88,11 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert (out / "t0_raw_vs_reference_subtraction.png").stat().st_size > 0
     assert (out / "t0_channels_vs_reference_2d.png").stat().st_size > 0
     assert (out / "t0_beam_spot_timing_proxy.png").stat().st_size > 0
+    assert (out / "beamline_wcte_pmt_time_prompt_gate.png").stat().st_size > 0
+    assert (out / "beamline_wcte_charge_low_investigation.png").stat().st_size > 0
+    assert (out / "beamline_wcte_charge_quality_mask_checks.png").stat().st_size > 0
+    assert (out / "beamline_wcte_all_time_vs_prompt_charge.png").stat().st_size > 0
+    assert (out / "wcte_low_charge_event_diagnostics.csv").stat().st_size > 0
     for page in ("hd_0-3", "hd_4-7", "hd_8-11", "hd_12-14"):
         assert (out / f"beamline_hd_charge_cut_progression_{page}.png").stat().st_size > 0
         assert (out / f"beamline_wcte_charge_cut_progression_{page}.png").stat().st_size > 0
@@ -108,6 +121,12 @@ def test_prompt_gated_beamline_outputs(tmp_path):
     assert wcte_progression["readout_counts_by_hd_and_stage"]["0"]["+ no T5 prompt hit"] == 2
     assert wcte_progression["charge_counts_by_hd_and_stage"]["0"]["HD TDC hit"] == 3
     assert wcte_progression["charge_definition"].startswith("sum of finite hit_pmt_charges")
+    low_diag = written_summary["wcte_charge_low_diagnostics"]
+    assert low_diag["prompt_center_ns"] == 1901.0
+    assert low_diag["prompt_time_available"] is True
+    assert low_diag["counts_by_sample"]["HD-tagged"]["exact_zero"] == 1
+    assert low_diag["event_quality_zero_by_sample"]["HD-tagged"] == 2
+    assert "beamline_wcte_all_time_vs_prompt_charge.png" in low_diag["plots"]
     tof_peak = written_summary["hd_charge_cut_progression"]["first_t2_t0_peak"]
     assert tof_peak["center_ns"] is not None
     assert tof_peak["window_ns"] == [tof_peak["center_ns"] - 0.5,

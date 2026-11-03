@@ -44,6 +44,8 @@ HD_CHARGE_DISPLAY_RANGE = (0.0, 3000.0)
 HD_CHARGE_HIST_BINS = 100
 HC2_CHANNEL = 11
 WCTE_CHARGE_BRANCHES = ("hit_pmt_charges", "hit_pmt_readout_mask")
+WCTE_TIME_BRANCH = "hit_pmt_calibrated_times"
+WCTE_EVENT_QUALITY_BRANCH = "window_data_quality_mask"
 T5_PROMPT_BRANCH = "T5_HasInTimeWindow"
 
 
@@ -126,6 +128,176 @@ def save_data(fig, path: Path, run_number: int | str | None = None):
     plt.close(fig)
 
 
+def plot_wcte_charge_diagnostics(rows: list[dict], prompt_center: float | None,
+                                 prompt_half_width: float, low_charge_max: float,
+                                 out: Path, run_number: int | str | None,
+                                 has_times: bool) -> dict:
+    """Plot charge/multiplicity diagnostics; keep exact zero distinct from small charge."""
+    hd_rows = list({row["entry"]: row for row in rows if row["hd"]}.values())
+    final_rows = [row for row in hd_rows if row.get("t0_prompt", False) and not row.get("hc2_hit", False)
+                  and row.get("first_tof", False) and row.get("t5_veto_pass", True)]
+    stage_sets = [("HD-tagged", hd_rows), ("T0 prompt", [r for r in hd_rows if r.get("t0_prompt")]),
+                  ("T0 + no HC2", [r for r in hd_rows if r.get("t0_prompt") and not r.get("hc2_hit")]),
+                  ("Final cuts", final_rows)]
+
+    def charge_counts(sample):
+        values = np.asarray([r["wcte_charge"] for r in sample if r.get("wcte_charge") is not None], dtype=float)
+        return {"readouts": int(len(values)), "exact_zero": int(np.count_nonzero(values == 0)),
+                "positive_le_low_max": int(np.count_nonzero((values > 0) & (values <= low_charge_max))),
+                "above_low_max": int(np.count_nonzero(values > low_charge_max))}
+
+    summary = {
+        "plots": [], "prompt_time_available": bool(has_times),
+        "prompt_center_ns": prompt_center, "prompt_half_width_ns": float(prompt_half_width),
+        "low_charge_max_input_units": float(low_charge_max),
+        "counts_by_sample": {name: charge_counts(sample) for name, sample in stage_sets},
+        "event_quality_available": any(r.get("wcte_event_quality") is not None for r in rows),
+        "event_quality_zero_by_sample": {
+            name: sum(r.get("wcte_event_quality") == 0 for r in sample) for name, sample in stage_sets},
+    }
+    fig, axes = plt.subplots(2, 2, figsize=(12, 9))
+    axis = axes[0, 0]
+    for name, sample in stage_sets:
+        values = [r["wcte_charge"] for r in sample if r.get("wcte_charge") is not None
+                  and r["wcte_charge"] > 0]
+        if values:
+            axis.hist(values, bins=np.linspace(0, low_charge_max, 81), histtype="step",
+                      label=f"{name} (n={len(values):,})")
+    axis.set(xlim=(0, low_charge_max), xlabel="All-time accepted PMT charge (input units)",
+             ylabel="Readouts / bin", title="Positive-charge zoom; exact zero excluded")
+    zero_note = "Exact zero counts: " + ", ".join(
+        f"{name} {charge_counts(sample)['exact_zero']}" for name, sample in stage_sets)
+    axis.text(0.02, 0.98, zero_note, transform=axis.transAxes, va="top", fontsize=7)
+    axis.legend(fontsize=7)
+
+    axis = axes[0, 1]
+    categories = ["exact zero", f"0 < Q ≤ {low_charge_max:g}", f"Q > {low_charge_max:g}"]
+    x = np.arange(len(stage_sets))
+    width = 0.23
+    for j, (label, pred, color) in enumerate((
+            (categories[0], lambda q: q == 0, "0.4"),
+            (categories[1], lambda q: 0 < q <= low_charge_max, "tab:orange"),
+            (categories[2], lambda q: q > low_charge_max, "tab:blue"))):
+        vals = [sum(pred(r["wcte_charge"]) for r in sample if r.get("wcte_charge") is not None)
+                for _, sample in stage_sets]
+        axis.bar(x + (j - 1) * width, vals, width=width, color=color, label=label)
+    axis.set(xticks=x, xticklabels=[name for name, _ in stage_sets], ylabel="Readouts",
+             title="Exact zero separated from positive low charge")
+    axis.tick_params(axis="x", labelrotation=15)
+    axis.set_yscale("log"); axis.set_ylim(bottom=0.5); axis.legend(fontsize=7)
+
+    axis = axes[1, 0]
+    paired = [(r["wcte_accepted_hits"], r["wcte_charge"]) for r in hd_rows
+              if r.get("wcte_accepted_hits") is not None and r.get("wcte_charge") is not None]
+    accepted = np.asarray([p[0] for p in paired], dtype=float)
+    charges = np.asarray([p[1] for p in paired], dtype=float)
+    if len(accepted):
+        axis.hist2d(accepted, charges, bins=[np.arange(-0.5, max(accepted.max()+1.5, 2), 1),
+                                              np.linspace(0, max(low_charge_max, np.percentile(charges, 99)), 81)],
+                    norm=matplotlib.colors.LogNorm(), cmap="viridis")
+    axis.set(xlabel="Accepted PMT hits (readout mask = 0)", ylabel="All-time PMT charge (input units)",
+             title="Is low charge associated with few accepted hits?")
+
+    axis = axes[1, 1]
+    if has_times and prompt_center is not None:
+        qvals = np.asarray([r["wcte_prompt_charge"] for r in hd_rows if r.get("wcte_prompt_charge") is not None])
+        qhits = np.asarray([r["wcte_prompt_hits"] for r in hd_rows if r.get("wcte_prompt_hits") is not None])
+        if len(qvals):
+            axis.hist2d(qhits, qvals, bins=[np.arange(-0.5, max(qhits.max()+1.5, 2), 1),
+                                             np.linspace(0, max(low_charge_max, np.percentile(qvals, 99)), 81)],
+                        norm=matplotlib.colors.LogNorm(), cmap="viridis")
+        axis.set(xlabel=f"Accepted PMT hits in ±{prompt_half_width:g} ns prompt gate",
+                 ylabel="Prompt-window PMT charge (input units)", title="Prompt-window charge vs hit count")
+    else:
+        axis.text(0.5, 0.5, "PMT calibrated-time branch unavailable\n(prompt diagnostics omitted)",
+                  ha="center", va="center", transform=axis.transAxes)
+        axis.set_axis_off()
+    fig.suptitle("WCTE charge investigation — HD-tagged readouts")
+    fig.tight_layout()
+    filename = "beamline_wcte_charge_low_investigation.png"
+    save_data(fig, out / filename, run_number); summary["plots"].append(filename)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    quality_groups = [("quality mask = 0", [r for r in hd_rows if r.get("wcte_event_quality") == 0]),
+                      ("quality mask ≠ 0", [r for r in hd_rows if r.get("wcte_event_quality") not in (None, 0)]),
+                      ("quality unavailable", [r for r in hd_rows if r.get("wcte_event_quality") is None])]
+    x = np.arange(len(quality_groups)); width = 0.24
+    for j, (label, predicate, color) in enumerate((
+            ("exact zero", lambda q: q == 0, "0.4"),
+            (f"0 < Q ≤ {low_charge_max:g}", lambda q: 0 < q <= low_charge_max, "tab:orange"),
+            (f"Q > {low_charge_max:g}", lambda q: q > low_charge_max, "tab:blue"))):
+        counts = [sum(predicate(r["wcte_charge"]) for r in group
+                      if r.get("wcte_charge") is not None) for _, group in quality_groups]
+        axes[0].bar(x + (j - 1) * width, counts, width=width, label=label, color=color)
+    axes[0].set(xticks=x, xticklabels=[name for name, _ in quality_groups], ylabel="Readouts",
+                title="Charge class versus event-level WCTE quality mask")
+    axes[0].tick_params(axis="x", labelrotation=12)
+    axes[0].set_yscale("log"); axes[0].set_ylim(bottom=0.5); axes[0].legend(fontsize=8)
+
+    accepted_counts = [sum(r.get("wcte_accepted_hits") == n for r in hd_rows) for n in range(5)]
+    masked_counts = [sum(r.get("wcte_masked_hits") == n for r in hd_rows) for n in range(5)]
+    x = np.arange(5)
+    axes[1].bar(x - 0.18, accepted_counts, width=0.36, label="accepted (mask=0)")
+    axes[1].bar(x + 0.18, masked_counts, width=0.36, label="masked (mask≠0)")
+    axes[1].set(xticks=x, xlabel="PMT-hit count per readout (shown 0–4)", ylabel="HD-tagged readouts",
+                title="Accepted and masked hit multiplicities")
+    axes[1].set_yscale("log"); axes[1].set_ylim(bottom=0.5); axes[1].legend(fontsize=8)
+    fig.tight_layout()
+    filename = "beamline_wcte_charge_quality_mask_checks.png"
+    save_data(fig, out / filename, run_number); summary["plots"].append(filename)
+
+    if has_times and prompt_center is not None:
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        paired_charge = [(r["wcte_charge"], r["wcte_prompt_charge"]) for r in hd_rows
+                         if r.get("wcte_charge") is not None
+                         and r.get("wcte_prompt_charge") is not None]
+        all_values = np.asarray([pair[0] for pair in paired_charge], dtype=float)
+        prompt_values = np.asarray([pair[1] for pair in paired_charge], dtype=float)
+        edges = np.linspace(0, low_charge_max, 81)
+        axes[0].hist(all_values[all_values > 0], bins=edges, histtype="step",
+                     label=f"all-time positive charge (n={np.count_nonzero(all_values > 0):,})")
+        axes[0].hist(prompt_values[prompt_values > 0], bins=edges, histtype="step",
+                     label=f"prompt-window positive charge (n={np.count_nonzero(prompt_values > 0):,})")
+        axes[0].text(0.02, 0.98,
+                     f"exact zero: all-time {np.count_nonzero(all_values == 0):,}; "
+                     f"prompt {np.count_nonzero(prompt_values == 0):,}",
+                     transform=axes[0].transAxes, va="top", fontsize=8)
+        axes[0].set(xlim=(0, low_charge_max), xlabel="Accepted PMT charge (input units)",
+                    ylabel="HD-tagged readouts / bin", title="Does a prompt-time gate change the charge spectrum?")
+        axes[0].legend(fontsize=8)
+        if len(all_values):
+            axes[1].hist2d(all_values, prompt_values,
+                           bins=[np.linspace(0, max(low_charge_max, np.percentile(all_values, 99)), 81),
+                                 np.linspace(0, max(low_charge_max, np.percentile(prompt_values, 99)), 81)],
+                           norm=matplotlib.colors.LogNorm(), cmap="viridis")
+        axes[1].set(xlabel="All-time accepted PMT charge", ylabel="Prompt-window accepted PMT charge",
+                    title="Readout-by-readout charge comparison")
+        fig.tight_layout()
+        filename = "beamline_wcte_all_time_vs_prompt_charge.png"
+        save_data(fig, out / filename, run_number); summary["plots"].append(filename)
+
+    # Per-event rows make it possible to inspect anomalous zero/low-charge cases.
+    csv_name = "wcte_low_charge_event_diagnostics.csv"
+    with (out / csv_name).open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["root_entry", "event_number", "readout_number", "hd_elements",
+                         "all_time_charge", "all_time_accepted_hits", "masked_hits",
+                         "total_pmt_hits", "event_quality_mask", "prompt_charge",
+                         "prompt_accepted_hits", "in_final_beamline_selection"])
+        for row in hd_rows:
+            q = row.get("wcte_charge")
+            pq = row.get("wcte_prompt_charge")
+            if q is None or (q > low_charge_max and (pq is None or pq > low_charge_max)):
+                continue
+            writer.writerow([row["entry"], row.get("event_number"), row.get("readout_number"),
+                             ";".join(map(str, sorted(row["hd"]))), q, row.get("wcte_accepted_hits"),
+                             row.get("wcte_masked_hits"), row.get("wcte_total_hits"),
+                             row.get("wcte_event_quality"), pq, row.get("wcte_prompt_hits"),
+                             row in final_rows])
+    summary["event_csv"] = csv_name
+    return summary
+
+
 def plot_peak_distributions(samples: dict[str, list[float]], gates: dict[str, dict],
                             out: Path, run_number: int | str | None = None,
                             t0_label: str = "T0 four-PMT average",
@@ -197,9 +369,15 @@ def run(args):
     tof_peak_bin_ns = getattr(args, "tof_peak_bin_ns", 0.2)
     tof_first_peak_half_width_ns = getattr(args, "tof_first_peak_half_width_ns", 0.5)
     tof_first_peak_min_fraction = getattr(args, "tof_first_peak_min_fraction", 0.10)
+    wcte_prompt_half_width = getattr(args, "wcte_prompt_half_width_ns", 40.0)
+    wcte_prompt_center_override = getattr(args, "wcte_prompt_center_ns", None)
+    wcte_prompt_bin = getattr(args, "wcte_prompt_peak_bin_ns", 2.0)
+    wcte_low_charge_max = getattr(args, "wcte_low_charge_max", 20000.0)
     if (tof_peak_bin_ns <= 0 or tof_first_peak_half_width_ns <= 0
             or not 0 < tof_first_peak_min_fraction <= 1):
         raise ValueError("TOF peak bin/half-width must be positive and minimum peak fraction in (0, 1]")
+    if wcte_prompt_half_width <= 0 or wcte_prompt_bin <= 0 or wcte_low_charge_max <= 0:
+        raise ValueError("WCTE prompt half-width, peak bin, and low-charge threshold must be positive")
     with uproot.open(args.input_root) as root:
         tree = root[args.tree]
         missing = set(REQUIRED) - set(tree.keys())
@@ -209,12 +387,15 @@ def run(args):
         has_quality = "vme_digi_issues_bitmask" in available
         has_qdc = all(name in available for name in QDC_BRANCHES)
         has_wcte_charge = all(name in available for name in WCTE_CHARGE_BRANCHES)
+        has_wcte_times = WCTE_TIME_BRANCH in available
+        has_wcte_event_quality = WCTE_EVENT_QUALITY_BRANCH in available
         has_t5_prompt_flag = T5_PROMPT_BRANCH in available
         partial_qdc = any(name in available for name in QDC_BRANCHES) and not has_qdc
         if partial_qdc:
             raise ValueError("ROOT file must contain both QDC branches: " + ", ".join(QDC_BRANCHES))
-        optional = [name for name in ("vme_digi_issues_bitmask", "run_id", *QDC_BRANCHES,
-                                      *WCTE_CHARGE_BRANCHES, T5_PROMPT_BRANCH)
+        optional = [name for name in ("vme_digi_issues_bitmask", "run_id", "event_number",
+                                      "readout_number", *QDC_BRANCHES, *WCTE_CHARGE_BRANCHES,
+                                      WCTE_TIME_BRANCH, WCTE_EVENT_QUALITY_BRANCH, T5_PROMPT_BRANCH)
                     if name in available]
         start = args.entry_start
         stop = min(tree.num_entries, start + args.max_events)
@@ -286,16 +467,96 @@ def run(args):
                                 if charge is not None and mask is not None and int(mask) == 0
                                 and np.isfinite(float(charge))]
                 wcte_charge = float(np.sum(good_charges))
+            accepted_hits = (len(good_charges) if charges is not None and masks is not None
+                             and len(charges) == len(masks) else None)
+            masked_hits = (sum(mask is not None and int(mask) != 0 for mask in masks)
+                           if masks is not None else None)
+            total_hits = len(charges) if charges is not None else None
+        else:
+            accepted_hits = masked_hits = total_hits = None
         t5_in_time_window = None
         if has_t5_prompt_flag:
             value = ak.to_list(arrays[T5_PROMPT_BRANCH][i])
             if value is not None:
                 t5_in_time_window = bool(value)
+        event_quality = (int(ak.to_list(arrays[WCTE_EVENT_QUALITY_BRANCH][i]))
+                         if has_wcte_event_quality else None)
+        event_number = (ak.to_list(arrays["event_number"][i]) if "event_number" in optional else None)
+        readout_number = (ak.to_list(arrays["readout_number"][i]) if "readout_number" in optional else None)
         rows.append({"entry": start + i, "times": times, "raw_times": raw_times,
                      "reference31_raw": refs[0], "t0": t0, "t0_raw": t0_raw, "t2": t2,
                      "t5_bars": t5_bars, "hd": hd_times,
                      "wcte_charge": wcte_charge,
+                     "wcte_accepted_hits": accepted_hits, "wcte_masked_hits": masked_hits,
+                     "wcte_total_hits": total_hits, "wcte_event_quality": event_quality,
+                     "event_number": event_number, "readout_number": readout_number,
                      "t5_in_time_window": t5_in_time_window})
+
+    # WCTE PMT time is its own clock. Find its dominant hit-time peak from
+    # beamline-quality readouts, then count accepted hits/charge in a fixed gate.
+    wcte_prompt_peak_count = 0
+    if has_wcte_charge and has_wcte_times:
+        time_edges = np.arange(-1000.0, 12000.0 + wcte_prompt_bin, wcte_prompt_bin)
+        time_counts = np.zeros(len(time_edges) - 1, dtype=np.int64)
+        for row in rows:
+            index = row["entry"] - start
+            charges = ak.to_list(arrays["hit_pmt_charges"][index])
+            masks = ak.to_list(arrays["hit_pmt_readout_mask"][index])
+            times_values = ak.to_list(arrays[WCTE_TIME_BRANCH][index])
+            if charges is None or masks is None or times_values is None:
+                continue
+            if len(charges) != len(masks) or len(charges) != len(times_values):
+                continue
+            good_times = [float(t) for t, q, mask in zip(times_values, charges, masks)
+                          if t is not None and q is not None and mask is not None
+                          and int(mask) == 0 and np.isfinite(float(t)) and np.isfinite(float(q))]
+            if good_times:
+                time_counts += np.histogram(good_times, bins=time_edges)[0]
+        if wcte_prompt_center_override is None and np.any(time_counts):
+            peak_index = int(np.argmax(time_counts))
+            wcte_prompt_center = float((time_edges[peak_index] + time_edges[peak_index + 1]) / 2)
+            wcte_prompt_peak_count = int(time_counts[peak_index])
+        elif wcte_prompt_center_override is not None:
+            wcte_prompt_center = float(wcte_prompt_center_override)
+            index = int(np.searchsorted(time_edges, wcte_prompt_center, side="right") - 1)
+            if 0 <= index < len(time_counts):
+                wcte_prompt_peak_count = int(time_counts[index])
+        else:
+            wcte_prompt_center = None
+        if wcte_prompt_center is not None:
+            for row in rows:
+                index = row["entry"] - start
+                charges = ak.to_list(arrays["hit_pmt_charges"][index])
+                masks = ak.to_list(arrays["hit_pmt_readout_mask"][index])
+                times_values = ak.to_list(arrays[WCTE_TIME_BRANCH][index])
+                selected = []
+                if (charges is not None and masks is not None and times_values is not None
+                        and len(charges) == len(masks) == len(times_values)):
+                    selected = [(float(q), float(t)) for q, mask, t in zip(charges, masks, times_values)
+                                if q is not None and mask is not None and t is not None
+                                and int(mask) == 0 and np.isfinite(float(q)) and np.isfinite(float(t))
+                                and abs(float(t) - wcte_prompt_center) <= wcte_prompt_half_width]
+                row["wcte_prompt_charge"] = float(sum(q for q, _ in selected))
+                row["wcte_prompt_hits"] = len(selected)
+    else:
+        wcte_prompt_center = None
+        for row in rows:
+            row["wcte_prompt_charge"] = None
+            row["wcte_prompt_hits"] = None
+
+    if has_wcte_times and wcte_prompt_center is not None:
+        fig, axis = plt.subplots(figsize=(10, 5))
+        axis.stairs(time_counts, time_edges, color="tab:blue")
+        axis.axvspan(wcte_prompt_center - wcte_prompt_half_width,
+                     wcte_prompt_center + wcte_prompt_half_width, color="tab:orange", alpha=0.2,
+                     label=f"prompt gate ±{wcte_prompt_half_width:g} ns")
+        axis.axvline(wcte_prompt_center, color="tab:orange", linestyle="--",
+                     label=f"peak center {wcte_prompt_center:g} ns")
+        axis.set(xlabel="Calibrated WCTE PMT hit time (ns; WCTE clock)",
+                 ylabel="Accepted PMT hits / bin", title="WCTE PMT times; beamline-quality readouts")
+        axis.legend()
+        fig.tight_layout()
+        save_data(fig, args.output_dir / "beamline_wcte_pmt_time_prompt_gate.png", run_number)
 
     # Determine every fixed peak once from beamline-quality readouts. T5 gates
     # are per bar because cable/geometry offsets can differ between bars.
@@ -717,6 +978,14 @@ def run(args):
         "hc_tdc_channel": HC2_CHANNEL,
     }
     if has_wcte_charge:
+        for row in rows:
+            row["t0_prompt"] = row["t0"] is not None and in_gate(t0_label, row["t0"])
+            row["hc2_hit"] = HC2_CHANNEL in row["times"]
+            row["first_tof"] = (row["t2"] is not None and row["t0"] is not None
+                                and np.isfinite(first_tof_center)
+                                and first_tof_bounds[0] <= row["t2"] - row["t0"] <= first_tof_bounds[1])
+            row["t5_veto_pass"] = (row["t5_in_time_window"] is False
+                                   if has_t5_prompt_flag else True)
         stage_names = ["HD TDC hit", "+ T0 prompt", "+ no HC hit", "+ first T2-T0 peak"]
         stage_colors = ["0.35", "tab:blue", "tab:orange", "tab:green", "tab:red"]
         if has_t5_prompt_flag:
@@ -826,9 +1095,22 @@ def run(args):
         if not has_t5_prompt_flag:
             wcte_charge_progression["note"] = (
                 "T5_HasInTimeWindow is absent; plots end at the TOF stage, so the requested T5 veto stage was not applied.")
+        low_diag = plot_wcte_charge_diagnostics(
+            rows, wcte_prompt_center, wcte_prompt_half_width, wcte_low_charge_max,
+            args.output_dir, run_number, has_wcte_times)
+        low_diag.update({
+            "available": True,
+            "prompt_peak_bin_count": int(wcte_prompt_peak_count),
+            "prompt_peak_bin_width_ns": float(wcte_prompt_bin),
+            "prompt_center_source": ("user override" if wcte_prompt_center_override is not None
+                                      else "mode of accepted WCTE PMT times in beamline-quality readouts"),
+            "event_quality_mask_definition": "recorded only; no WCTE event-level quality cut applied",
+            "hit_mask_definition": "accepted = per-hit readout mask == 0; masked are all nonzero mask values",
+        })
     else:
         wcte_charge_progression["note"] = (
             "hit_pmt_charges and/or hit_pmt_readout_mask branches are absent; no WCTE charge plots were produced.")
+        low_diag = {"available": False, "note": wcte_charge_progression["note"]}
 
     tofs["T0-T5"] = [x for values in t5_bar_tofs for x in values]
 
@@ -1027,6 +1309,7 @@ def run(args):
                "t5_beam_profile_proxy": t5_beamspot_summary,
                "hd_charge_cut_progression": hd_charge_progression,
                "wcte_charge_cut_progression_by_hd_tdc": wcte_charge_progression,
+               "wcte_charge_low_diagnostics": low_diag,
                "selection_note": "Beamline references required; vme_digi_issues_bitmask==0 when present. No WCTE PMT quality mask. T5 bars are not vetoed for multiplicity.",
                "t0_offset_comparison_note": "The reference-only series is the analysis default. Relative channel offsets are estimated from this run's T0 residuals solely for comparison and are not applied to TOFs or prompt gates. The absolute four-channel average retains event-to-event common-mode timing spread; the per-channel residual plot subtracts the same-event median and therefore does not show that common-mode spread."}
     summary["reference_subtraction_diagnostic"] = {
@@ -1075,6 +1358,14 @@ def parser():
                         help="Minimum smoothed peak height as a fraction of the tallest TOF peak")
     result.add_argument("--end-diff-range-ns", type=float, default=5.0,
                         help="Half-range for the T5 left-right end-time-difference plot")
+    result.add_argument("--wcte-prompt-half-width-ns", type=float, default=40.0,
+                        help="WCTE PMT-time prompt gate half-width around its dominant hit-time peak")
+    result.add_argument("--wcte-prompt-center-ns", type=float, default=None,
+                        help="Override the WCTE PMT-time prompt center (does not use beamline clock)")
+    result.add_argument("--wcte-prompt-peak-bin-ns", type=float, default=2.0,
+                        help="Bin width for locating the dominant WCTE PMT hit-time peak")
+    result.add_argument("--wcte-low-charge-max", type=float, default=20000.0,
+                        help="Upper edge for low-charge diagnostic views, in input charge units")
     return result
 
 
