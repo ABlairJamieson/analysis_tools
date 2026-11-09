@@ -1,4 +1,5 @@
 from scripts.beamline_timing import correct_tdc_hits
+from analysis_tools.beamline_timing import correct_tdc_hits as shared_correct_tdc_hits
 
 
 def test_reference_correction_preserves_repeated_hits_and_bank_offsets():
@@ -13,3 +14,8 @@ def test_missing_reference_never_silently_uses_raw_time():
     corrected, refs = correct_tdc_hits([(31, 100.), (0, 110.), (32, 235.)])
     assert refs == (100., None)
     assert [hit.corrected_ns for hit in corrected] == [None, 10., None]
+
+
+def test_legacy_import_is_the_shared_single_implementation():
+    hits = [(31, 100.0), (46, 200.0), (0, 110.0), (32, 235.0)]
+    assert correct_tdc_hits(hits) == shared_correct_tdc_hits(hits)

@@ -345,7 +345,12 @@ selection code.
 | File | Responsibility | Start reading here |
 | --- | --- | --- |
 | `scripts/study_wcte_beamline_prompt.py` | Prompt-gated T0/T2/T5/HD timing, QDC charge progression, and optional WCTE charge diagnostics from ROOT | Module docstring, constants at the top, then numbered sections in `run()` |
-| `scripts/beamline_timing.py` | Shared beamline reference-channel subtraction | `correct_tdc_hits()` |
+| `analysis_tools/beamline_timing.py` | Single shared implementation of beamline reference-channel subtraction | `correct_tdc_hits()` |
+| `studies/framework/` | Shared study lifecycle, named selections, plugin loader, and direct DataTools WCSim-ROOT source | Folder `README.md`, then `core.py`, `runner.py`, and the source adapter |
+| `studies/wcte_beamline_prompt/` | DataLoader-based processed-data ROOT study; `example_study.py` is the student starter and `wcte_beamline_prompt_study.py` is the analysis plugin | Folder `README.md`, then `runner.py` and the relevant `Study` plugin |
+| `studies/wcte_delayed_bursts/` | DataLoader-based real-data PMT burst study; preserves the observed bunch peaks with no bunch veto | Folder `README.md`, then `burst_tools.py` and `wcte_delayed_bursts_study.py` |
+| `studies/wcsim_delayed_positrons/` | Analysis-specific WCSim ROOT delayed-cluster candidate plugin | Folder `README.md`, then `wcsim_delayed_positron_study.py` |
+| `scripts/beamline_timing.py` | Backward-compatible import path for older scripts | Re-exports `analysis_tools.beamline_timing` |
 | `scripts/study_wcte_burst_gaps.py` | Dense PMT burst finding, within-window gap tables, and ROOT diagnostics | `find_bursts()` for the candidate definition; `run()` for input/output flow |
 | `scripts/study_wcte_npz_burst_gaps.py` | Same burst analysis on converted, provenance-preserving NPZ | `conversion_parts()` for input validation; `run()` for the analysis loop |
 | `scripts/prepare_wcte_beamline_prompt_batch.py` | Prepares per-run EOS/Condor jobs; does not submit them | `prepare()` |

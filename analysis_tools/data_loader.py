@@ -2,6 +2,8 @@ import uproot
 import awkward as ak
 import math
 
+from .beamline_timing import REFERENCE_IDS, correct_tdc_hits
+
 class DataLoader:
     """
     A class for loading data the processed WCTE data and apply data quality cuts
@@ -227,17 +229,20 @@ class DataLoader:
                 keep.append(False)
                 continue
             times = [float(x) for x in raw_times]
-            if 31 not in ids or 46 not in ids:
+            if any(reference_id not in ids for reference_id in REFERENCE_IDS):
                 keep.append(False)
                 continue
-            ref31 = times[ids.index(31)]
-            ref46 = times[ids.index(46)]
+            corrected_hits, _ = correct_tdc_hits(zip(ids, times))
             corrected = {}
-            for channel, time in zip(ids, times):
-                if channel in (31, 46):
+            for hit in corrected_hits:
+                if hit.channel_id in REFERENCE_IDS or hit.corrected_ns is None:
                     continue
-                reference = ref31 if channel <= 31 else ref46
-                corrected.setdefault(channel, time - reference - cfg["tdc_offsets"].get(channel, 0.0))
+                # Detector offsets are analysis-specific and applied exactly
+                # once, after the common TDC reference subtraction.
+                corrected.setdefault(
+                    hit.channel_id,
+                    hit.corrected_ns - cfg["tdc_offsets"].get(hit.channel_id, 0.0),
+                )
             if not all(channel in corrected for channel in cfg["t0_channels"]):
                 keep.append(False)
                 continue

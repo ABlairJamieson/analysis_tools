@@ -1,7 +1,9 @@
 import awkward as ak
+import math
 import uproot
 
 from analysis_tools.data_loader import DataLoader
+from analysis_tools.beamline_timing import correct_tdc_hits
 
 
 def make_tagged_gamma_root(path):
@@ -53,4 +55,34 @@ def test_tagged_gamma_hd_charge_cut_is_not_enabled_by_default(tmp_path):
         # The first two events have all T0/T2/HD timing channels. The QDC
         # values are deliberately not used unless a charge cut is requested.
         assert sum(len(batch) for batch in batches) == 2
+
+
+def test_tagged_gamma_offsets_follow_shared_reference_subtraction_once(tmp_path):
+    path = tmp_path / "tagged_gamma.root"
+    make_tagged_gamma_root(path)
+    offsets = {channel: 0.0 for channel in (0, 1, 2, 3, 8)}
+    offsets[0] = 2.0
+    with DataLoader(path) as loader:
+        loader.apply_tagged_gamma_selection(
+            require_clean_mpmt=False,
+            t0_t2_tof_range_ns=(1.0, 5.0),
+            tdc_channel_offsets_ns=offsets,
+        )
+        batch = next(loader.iterate(step_size="10 MB"))
+
+    ids = ak.to_list(batch["beamline_pmt_tdc_ids"][0])
+    times = ak.to_list(batch["beamline_pmt_tdc_times"][0])
+    corrected_hits, refs = correct_tdc_hits(zip(ids, times))
+    corrected = {}
+    for hit in corrected_hits:
+        if hit.corrected_ns is not None:
+            corrected.setdefault(hit.channel_id,
+                                 hit.corrected_ns - offsets.get(hit.channel_id, 0.0))
+    assert refs == (100.0, 200.0)
+    assert corrected[0] == 8.0
+    assert corrected[8] == 13.5
+    assert math.isclose(
+        corrected[8] - sum(corrected[ch] for ch in (0, 1, 2, 3)) / 4,
+        3.85,
+    )
 
